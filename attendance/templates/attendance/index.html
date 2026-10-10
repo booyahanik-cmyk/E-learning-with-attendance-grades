@@ -1,0 +1,137 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register — College Attendance System</title>
+<link rel="stylesheet" href="{% static 'style.css' %}">
+<style>
+  .login-side-content {
+    background: rgba(14, 29, 52, 0.88) !important;
+    padding: 48px !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  }
+  .login-side-content h1 {
+    color: var(--parchment, #F7F5EE) !important;
+    font-size: 3.2rem !important;
+    line-height: 1.1 !important;
+    margin-bottom: 20px !important;
+    text-shadow: none !important;
+  }
+  .login-side-content p {
+    color: rgba(255, 255, 255, 0.95) !important;
+    font-size: 1.05rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 30px !important;
+  }
+  .login-side::before {
+    background: linear-gradient(135deg, rgba(14, 29, 52, 0.5) 0%, rgba(14, 29, 52, 0.1) 100%) !important;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="{% url 'login' %}" class="brand" style="display: flex; align-items: center; gap: 8px;">
+      <img src="{% static 'cobra_logo.png' %}" alt="Cobra Coaching Logo" style="height: 32px; width: auto; object-fit: contain;">
+      Cobra Coaching
+    </a>
+    <nav class="nav-tabs"></nav>
+    <div class="nav-user"></div>
+  </div>
+</header>
+
+<main class="login-shell">
+
+  <section class="login-side">
+    <div class="login-side-content">
+      <span class="eyebrow" style="color:var(--gold, #C6963B); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;">YOUR ACADEMIC JOURNEY, CONNECTED</span>
+      <h1>Learn. Track. Achieve.</h1>
+      <p>One platform for learning, attendance, and academic performance. Explore courses, track your progress, and stay on top of your academic journey.</p>
+      
+      <div style="display: flex; gap: 16px; margin-top: 24px; flex-wrap: wrap;">
+        <span style="display: flex; align-items: center; gap: 6px; font-family: var(--font-mono, monospace); font-size: 0.85rem; color: #FFF; background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>
+          Learning
+        </span>
+        <span style="display: flex; align-items: center; gap: 6px; font-family: var(--font-mono, monospace); font-size: 0.85rem; color: #FFF; background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Attendance
+        </span>
+        <span style="display: flex; align-items: center; gap: 6px; font-family: var(--font-mono, monospace); font-size: 0.85rem; color: #FFF; background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          Grades
+        </span>
+      </div>
+    </div>
+
+    <p style="position:relative; z-index:1; color:#8590AC; font-size:0.78rem; margin:0;">Department of Computer Science · Fall Semester 2026</p>
+  </section>
+
+  <section class="login-form-wrap">
+    <div class="login-card">
+      <span class="eyebrow">Sign in</span>
+      <h2>Welcome back</h2>
+      <p class="login-sub">Sign in to access Attendance and Grade records</p>
+
+      {% for message in messages %}
+        <p class="form-note">{{ message }}</p>
+      {% endfor %}
+      {% if form.errors %}
+        <p class="form-error">
+          {% for error in form.non_field_errors %}{{ error }}{% empty %}Please check your credentials and try again.{% endfor %}
+        </p>
+      {% endif %}
+
+      <div class="role-switch" style="margin-bottom: 14px;">
+        <input type="radio" name="role" id="role-student" checked onclick="setCredentials('STU001')">
+        <label for="role-student">Student</label>
+        <input type="radio" name="role" id="role-faculty" onclick="setCredentials('EMP2001')">
+        <label for="role-faculty">Faculty</label>
+        <input type="radio" name="role" id="role-admin" onclick="setCredentials('admin')">
+        <label for="role-admin">Admin</label>
+      </div>
+
+
+
+      <form method="post" action="{% url 'login' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="field">
+          <label for="id">College ID / Username</label>
+          <input type="text" name="username" id="id" value="{{ form.username.value|default:'STU001' }}"
+                 placeholder="e.g. STU001 or EMP2001" required autofocus>
+        </div>
+        <div class="field">
+          <label for="pw">Password</label>
+          <input type="password" name="password" id="pw" value="pass1234" placeholder="••••••••••" required>
+        </div>
+        <div class="field-row">
+          <label class="check"><input type="checkbox" checked> Remember me</label>
+          <a href="#">Need help?</a>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Sign in to Cobra Coaching</button>
+      </form>
+
+      <p class="login-foot">New student this semester? <a href="{% url 'register' %}">Create account</a></p>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  function setCredentials(username) {
+    const userInput = document.getElementById('id');
+    const pwInput = document.getElementById('pw');
+    if (userInput) userInput.value = username;
+    if (pwInput) pwInput.value = 'pass1234';
+  }
+</script>
+
+</body>
+</html>

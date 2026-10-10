@@ -1,0 +1,121 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Reports — Cobra Coaching{% endblock %}
+
+
+
+{% block body %}
+<main class="page">
+  <div class="container">
+
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">{% if course %}{{ course.code }} · {{ course.name }} · Semester report{% else %}No course selected{% endif %}</span>
+        <h1>Attendance patterns</h1>
+        <p>{% if course %}Four-week view of every register taken, plus a ranked list of students needing
+           follow-up.{% else %}No courses are assigned to your account yet.{% endif %}</p>
+      </div>
+      {% if course %}
+        <a class="btn btn-ghost" href="{% url 'reports_export' %}?course={{ course.pk }}">Export as CSV</a>
+      {% endif %}
+    </div>
+
+    {% for message in messages %}
+      <p class="{% if message.tags == 'error' %}form-error{% else %}form-note{% endif %}">{{ message }}</p>
+    {% endfor %}
+
+    {% if courses %}
+    <form method="get" class="toolbar">
+      <div class="toolbar-group">
+        <select name="course" aria-label="Select course" onchange="this.form.submit()">
+          {% for option in courses %}
+            <option value="{{ option.pk }}"{% if option.pk == course.pk %} selected{% endif %}>{{ option.code }} — {{ option.name }}</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-ghost btn-sm" type="submit">Show report</button>
+      </div>
+      <span class="summary mono">{{ classes_held }} class{{ classes_held|pluralize:"es" }} recorded{% if last_class %} · last on {{ last_class|date:"j M Y" }}{% endif %}</span>
+    </form>
+    {% endif %}
+
+    <div class="grid-2">
+
+      <div class="card panel">
+        <div class="panel-head">
+          <h3>Weekly attendance heatmap</h3>
+          <span class="mono" style="font-size:0.72rem;color:var(--ink-soft)">Last 28 days</span>
+        </div>
+        <div class="heatmap">
+          {% for day in heatmap %}<div class="cell" data-lvl="{{ day.level }}" title="{{ day.date|date:'D j M' }} — {% if day.row.held %}{{ day.row.percent }}% ({{ day.row.attended }}/{{ day.row.held }}){% else %}no class{% endif %}"></div>{% endfor %}
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:var(--absent-bg)"></span>No class</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#D7E4DA"></span>&lt;70%</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#A9C5AF"></span>70–80%</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#6C9877"></span>80–90%</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--present)"></span>90%+</span>
+        </div>
+      </div>
+
+      <div class="card panel">
+        <div class="panel-head">
+          <h3>Needs follow-up</h3>
+          <span class="mono" style="font-size:0.72rem;color:var(--ink-soft)">Below {{ threshold }}%</span>
+        </div>
+        <ul class="rank-list">
+          {% for row in shortfalls %}
+          <li>
+            <span class="rank">{{ forloop.counter|stringformat:"02d" }}</span>
+            <span>{{ row.student.get_full_name|default:row.student.username }}
+              <span style="color:var(--ink-soft); font-size:0.78rem;">· Roll {{ row.student.roll_number|default:row.student.username }}</span>
+            </span>
+            <span class="pct" style="color:var({% if row.percent < 65 %}--absent{% else %}--late{% endif %})">{{ row.percent }}%</span>
+          </li>
+          {% empty %}
+          <li>
+            <span class="rank">—</span>
+            <span>{% if classes_held %}Every student is at or above {{ threshold }}%.{% else %}No registers have been saved for this course yet.{% endif %}</span>
+            <span class="pct"></span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="card panel" style="margin-top:20px;">
+      <div class="panel-head">
+        <h3>Semester summary</h3>
+        {% if overall.percent == None %}
+          <span class="stamp-big" style="color:var(--ink-soft)">No Data</span>
+        {% elif overall.percent >= 85 %}
+          <span class="stamp-big" style="color:var(--present)">On Track</span>
+        {% elif overall.low %}
+          <span class="stamp-big" style="color:var(--absent)">At Risk</span>
+        {% else %}
+          <span class="stamp-big" style="color:var(--late)">Watch</span>
+        {% endif %}
+      </div>
+      <div class="stat-grid" style="margin-bottom:0;">
+        <div class="stat-card" style="border-right:1px solid var(--rule)">
+          <span class="label">Classes held</span>
+          <span class="value mono">{{ classes_held }}</span>
+        </div>
+        <div class="stat-card" style="border-right:1px solid var(--rule)">
+          <span class="label">Class average</span>
+          <span class="value mono">{{ overall.percent|default_if_none:"—" }}{% if overall.percent != None %}%{% endif %}</span>
+        </div>
+        <div class="stat-card" style="border-right:1px solid var(--rule)">
+          <span class="label">Perfect attendance</span>
+          <span class="value mono">{{ perfect|length }}</span>
+        </div>
+        <div class="stat-card">
+          <span class="label">At risk of debarment</span>
+          <span class="value mono"{% if shortfalls %} style="color:var(--absent)"{% endif %}>{{ shortfalls|length }}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+{% endblock %}

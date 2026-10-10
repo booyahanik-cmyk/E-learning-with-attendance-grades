@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="panel">
+  <div class="cheader"><div class="icon big">{{ c['icon'] }}</div>
+    <div><span class="tag">{{ c['category'] }}</span><h2>{{ c['title'] }}</h2>
+    <p class="muted">by {{ c['teacher'] }}</p></div></div>
+  <p>{{ c['description'] }}</p>
+  {% if enrolled %}
+    <div class="bar"><div style="width:{{ stats[2] }}%"></div></div>
+    <p class="muted">{{ stats[1] }} of {{ stats[0] }} lessons done ({{ stats[2] }}%)</p>
+  {% else %}
+    <form method="post" action="{{ url_for('enroll', cid=c['id']) }}"><button class="btn">Enroll for free</button></form>
+  {% endif %}
+  {% if voucher %}
+  <div class="voucher">🎁 <b>{{ voucher['discount'] }} on {{ voucher['brand'] }}</b>
+    <span class="code">{{ voucher['code'] }}</span></div>
+  {% endif %}
+  <h3 class="section">Lessons</h3>
+  {% for l in lessons %}
+  <div class="lesson {{ 'done' if l['id'] in done_ids }}">
+    <div><b>{{ loop.index }}. {{ l['title'] }}</b><p>{{ l['content'] }}</p></div>
+    {% if enrolled and l['id'] not in done_ids %}
+      <form method="post" action="{{ url_for('complete_lesson', lid=l['id']) }}"><button class="btn small">Mark done</button></form>
+    {% elif l['id'] in done_ids %}<span class="check">✔</span>{% endif %}
+  </div>
+  {% endfor %}
+  {% if user and user['id'] == c['instructor_id'] %}
+  <form method="post" action="{{ url_for('delete_course', cid=c['id']) }}" onsubmit="return confirm('Delete this course?')">
+    <button class="btn small danger">Delete course</button></form>
+  {% endif %}
+</div>
+{% endblock %}

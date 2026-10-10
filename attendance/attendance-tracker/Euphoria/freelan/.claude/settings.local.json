@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import sys; print\\(sys.version\\); print\\(sys.executable\\)\")",
+      "Bash(python manage.py shell -c ' *)",
+      "Bash(python -c ' *)",
+      "Bash(\"/c/Program Files/MySQL/MySQL Server 8.0/bin/mysql.exe\" --version)",
+      "Bash(python manage.py check)",
+      "Bash(python manage.py makemigrations attendance)",
+      "Bash(python manage.py migrate)",
+      "Bash(python manage.py test attendance -v 2)",
+      "Bash(python manage.py showmigrations)",
+      "Bash(DJANGO_SETTINGS_MODULE=freelan.settings python -c ' *)",
+      "Bash(python manage.py makemigrations --check --dry-run)",
+      "Bash(python manage.py test attendance)",
+      "Bash(python manage.py seed_demo)",
+      "Bash(DEMO_PW='FGMjRbbaCd4h' python manage.py shell)"
+    ]
+  }
+}

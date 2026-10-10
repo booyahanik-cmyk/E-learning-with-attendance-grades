@@ -1,0 +1,81 @@
+{% extends 'attendance/base.html' %}
+{% load static %}
+
+{% block title %}Edit Course — LearnSphere{% endblock %}
+
+{% block body %}
+<main class="page">
+  <div class="container" style="max-width: 860px;">
+
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 20px;">
+      <a href="{% url 'ls_catalog' %}"
+        style="display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.84rem; color: var(--navy); text-decoration: none; font-weight: 600;">
+        &larr; Back to Faculty Studio
+      </a>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Faculty Control · Curriculum Authoring</span>
+        <h1>Edit Course Details</h1>
+        <p>Update metadata and description for "{{ course.title }}".</p>
+      </div>
+      <div class="stamp-wrapper">
+        <span class="rubber-stamp">AUTHOR</span>
+      </div>
+    </div>
+
+    <section class="card panel"
+      style="padding: 34px; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; box-shadow: var(--shadow-card);">
+      <form method="post" style="display: flex; flex-direction: column; gap: 22px;">
+        {% csrf_token %}
+
+        <div>
+          <label
+            style="display: block; font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--navy); margin-bottom: 8px;">
+            Course Title *
+          </label>
+          <input type="text" name="title" value="{{ course.title }}" required
+            style="width: 100%; padding: 11px 14px; border: 1px solid var(--rule); border-radius: 4px; font-family: var(--font-body); font-size: 0.96rem; background: var(--paper-2); outline: none;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div>
+            <label
+              style="display: block; font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--navy); margin-bottom: 8px;">
+              Category Track *
+            </label>
+            <input type="text" name="category" value="{{ course.category }}" required
+              style="width: 100%; padding: 11px 14px; border: 1px solid var(--rule); border-radius: 4px; font-family: var(--font-body); font-size: 0.96rem; background: var(--paper-2); outline: none;">
+          </div>
+          <div>
+            <label
+              style="display: block; font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--navy); margin-bottom: 8px;">
+              Icon / Code (Optional)
+            </label>
+            <input type="text" name="icon" value="{{ course.icon }}"
+              style="width: 100%; padding: 11px 14px; border: 1px solid var(--rule); border-radius: 4px; font-family: var(--font-body); font-size: 0.96rem; background: var(--paper-2); outline: none;">
+          </div>
+        </div>
+
+        <div>
+          <label
+            style="display: block; font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--navy); margin-bottom: 8px;">
+            Course Syllabus Description *
+          </label>
+          <textarea name="description" rows="5" required
+            style="width: 100%; padding: 11px 14px; border: 1px solid var(--rule); border-radius: 4px; font-family: var(--font-body); font-size: 0.96rem; background: var(--paper-2); resize: vertical; outline: none;">{{ course.description }}</textarea>
+        </div>
+
+        <div style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 12px;">
+          <a href="{% url 'ls_catalog' %}" class="btn btn-ghost" style="padding: 10px 24px;">Cancel</a>
+          <button type="submit" class="btn btn-primary" style="padding: 10px 32px;">Save Changes</button>
+        </div>
+      </form>
+    </section>
+
+  </div>
+</main>
+{% endblock %}

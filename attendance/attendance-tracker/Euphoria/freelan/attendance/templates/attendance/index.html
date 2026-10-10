@@ -1,0 +1,108 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register — College Attendance System</title>
+<link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="{% url 'login' %}" class="brand">
+      <span class="brand-mark">RG</span>
+      ChronosClass
+    </a>
+    <nav class="nav-tabs"></nav>
+    <div class="nav-user"></div>
+  </div>
+</header>
+
+<main class="login-shell">
+
+  <section class="login-side">
+    <div class="login-side-content">
+      <span class="eyebrow" style="color:#9DAAC7">Est. attendance, made simple</span>
+      <h1>Every roll call,<br>kept in order.</h1>
+      <p>One shared register for faculty and students — mark attendance, track percentages, and catch shortfalls before they become a problem.</p>
+
+      <div class="ledger-preview">
+        <div class="row">
+          <span class="roll mono">014</span>
+          <span class="name">Ananya Rao</span>
+          <span class="stamp stamp-present">Present</span>
+        </div>
+        <div class="row">
+          <span class="roll mono">015</span>
+          <span class="name">Devansh Iyer</span>
+          <span class="stamp stamp-late">Late</span>
+        </div>
+        <div class="row">
+          <span class="roll mono">016</span>
+          <span class="name">Priya Menon</span>
+          <span class="stamp stamp-absent">Absent</span>
+        </div>
+        <div class="row">
+          <span class="roll mono">017</span>
+          <span class="name">Kabir Shah</span>
+          <span class="stamp stamp-present">Present</span>
+        </div>
+      </div>
+    </div>
+
+    <p style="position:relative; z-index:1; color:#8590AC; font-size:0.78rem; margin:0;">Department of Computer Science · Fall Semester 2026</p>
+  </section>
+
+  <section class="login-form-wrap">
+    <div class="login-card">
+      <span class="eyebrow">Sign in</span>
+      <h2>Welcome back</h2>
+      <p class="login-sub">Sign in to mark or view attendance</p>
+
+      {% for message in messages %}
+        <p class="form-note">{{ message }}</p>
+      {% endfor %}
+      {% if form.errors %}
+        <p class="form-error">
+          {% for error in form.non_field_errors %}{{ error }}{% empty %}Please check the details below.{% endfor %}
+        </p>
+      {% endif %}
+
+      <div class="role-switch">
+        <input type="radio" name="role" id="role-student" checked>
+        <label for="role-student">Student</label>
+        <input type="radio" name="role" id="role-faculty">
+        <label for="role-faculty">Faculty</label>
+        <input type="radio" name="role" id="role-admin">
+        <label for="role-admin">Admin</label>
+      </div>
+
+      <form method="post" action="{% url 'login' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="field">
+          <label for="id">College ID / Email</label>
+          <input type="text" name="username" id="id" value="{{ form.username.value|default:'' }}"
+                 placeholder="e.g. 21CS014 or name@college.edu" required autofocus>
+        </div>
+        <div class="field">
+          <label for="pw">Password</label>
+          <input type="password" name="password" id="pw" placeholder="••••••••••" required>
+        </div>
+        <div class="field-row">
+          <label class="check"><input type="checkbox"> Remember me</label>
+          <a href="#">Forgot password?</a>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Sign in to Register</button>
+      </form>
+
+      <p class="login-foot">New this semester? <a href="{% url 'register' %}">Create a student account</a></p>
+    </div>
+  </section>
+
+</main>
+
+</body>
+</html>

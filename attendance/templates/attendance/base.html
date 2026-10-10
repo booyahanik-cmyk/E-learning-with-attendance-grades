@@ -1,0 +1,87 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Cobra Coaching{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'style.css' %}">
+<link rel="stylesheet" href="{% static 'grades.css' %}">
+<link rel="stylesheet" href="{% static 'learnsphere.css' %}">
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="{% if user.is_authenticated %}{% if user.role == 'student' %}{% url 'student_home' %}{% else %}{% url 'faculty_dashboard' %}{% endif %}{% else %}{% url 'login' %}{% endif %}" class="brand" style="display: flex; align-items: center; gap: 8px;">
+      <img src="{% static 'cobra_logo.png' %}" alt="Cobra Coaching" style="height: 32px; width: auto; object-fit: contain;">
+      Cobra Coaching
+    </a>
+    
+    <nav class="nav-tabs" aria-label="Main Navigation">
+      {% block nav %}
+        {% if user.is_authenticated %}
+          {% if user.role == 'student' %}
+            <a href="{% url 'student_home' %}" class="{% if active_tab == 'attendance' %}active{% endif %}">Attendance</a>
+            <a href="{% url 'student_grades' %}" class="{% if active_tab == 'grades' %}active{% endif %}">Grades</a>
+            <a href="{% url 'ls_catalog' %}" class="{% if active_tab == 'learnsphere' %}active{% endif %}">LearnSphere</a>
+          {% elif user.role == 'faculty' %}
+            <a href="{% url 'faculty_dashboard' %}" class="{% if active_tab == 'dashboard' %}active{% endif %}">Dashboard</a>
+            <a href="{% url 'attendance_register' %}" class="{% if active_tab == 'attendance' %}active{% endif %}">Attendance</a>
+            <a href="{% url 'faculty_grades' %}" class="{% if active_tab == 'grades' %}active{% endif %}">Grades</a>
+            <a href="{% url 'reports' %}" class="{% if active_tab == 'reports' %}active{% endif %}">Reports</a>
+            <a href="{% url 'ls_catalog' %}" class="{% if active_tab == 'learnsphere' %}active{% endif %}">LearnSphere</a>
+          {% else %}
+            <a href="{% url 'faculty_dashboard' %}" class="{% if active_tab == 'dashboard' %}active{% endif %}">Dashboard</a>
+            <a href="{% url 'attendance_register' %}" class="{% if active_tab == 'attendance' %}active{% endif %}">Attendance</a>
+            <a href="{% url 'faculty_grades' %}" class="{% if active_tab == 'grades' %}active{% endif %}">Grades</a>
+            <a href="{% url 'reports' %}" class="{% if active_tab == 'reports' %}active{% endif %}">Reports</a>
+            <a href="{% url 'ls_catalog' %}" class="{% if active_tab == 'learnsphere' %}active{% endif %}">LearnSphere</a>
+            <a href="{% url 'admin:index' %}">Admin</a>
+          {% endif %}
+        {% endif %}
+      {% endblock %}
+    </nav>
+
+    <div class="nav-user">
+      {% if user.is_authenticated %}
+        <span>{{ user.roll_number|default:user.employee_id|default:user.username }} · {{ user.get_role_display }}</span>
+        <span class="avatar" title="{{ user.username }}">{{ user.username|slice:":2"|upper }}</span>
+        <form method="post" action="{% url 'logout' %}" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="btn-signout" style="border: 1px solid rgba(255, 255, 255, 0.32); background: rgba(255, 255, 255, 0.05); color: #FFFFFF; font-size: 0.82rem; padding: 5px 12px; border-radius: 3px; cursor: pointer;">Sign out</button>
+        </form>
+      {% else %}
+        <a href="{% url 'login' %}" style="color: #FFFFFF; text-decoration: none; font-size: 0.85rem; font-weight: 500;">Sign in</a>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+{% if messages %}
+  <div class="container" style="margin-top: 16px;">
+    {% for message in messages %}
+      <div class="banner {% if message.tags == 'error' %}banner-error{% elif message.tags == 'success' %}banner-success{% else %}banner-info{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% block body %}{% endblock %}
+
+<footer class="site-footer">
+  <div class="container">
+    <span>&copy; 2026 Cobra Coaching — Department of Computer Science</span>
+    <span>Integrated Academic &amp; Attendance Management System</span>
+  </div>
+</footer>
+
+<div id="toast-container" class="toast-container"></div>
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

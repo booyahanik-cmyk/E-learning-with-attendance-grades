@@ -1,0 +1,151 @@
+{% extends 'attendance/base.html' %}
+{% load static %}
+
+{% block title %}LearnSphere Catalog — Cobra Coaching{% endblock %}
+
+{% block body %}
+<main class="page">
+  <div class="container">
+
+    <!-- Page Header with Cobra Coaching Rubber Stamp -->
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Academic Curriculum · Self-Paced Modules</span>
+        <h1>LearnSphere Courses</h1>
+        <p>Explore university-grade lecture tracks, comprehensive code studies, and earned reward vouchers.</p>
+      </div>
+      <div class="stamp-wrapper">
+        <span class="rubber-stamp">LEARN SPHERE</span>
+      </div>
+    </div>
+
+    <!-- Student Learning Metrics Ribbon -->
+    <div class="ls-metrics-grid">
+      <div class="ls-stat-card">
+        <span class="ls-stat-label">Available Tracks</span>
+        <span class="ls-stat-value mono">{{ metrics.total_courses }}</span>
+        <span class="ls-stat-caption">Available course tracks</span>
+      </div>
+      <div class="ls-stat-card">
+        <span class="ls-stat-label">Your Enrollments</span>
+        <span class="ls-stat-value mono">{{ metrics.enrolled_count }}</span>
+        <span class="ls-stat-caption">Active courses in progress</span>
+      </div>
+      <div class="ls-stat-card">
+        <span class="ls-stat-label">Lectures Completed</span>
+        <span class="ls-stat-value mono" style="color: var(--present);">{{ metrics.completed_lessons }}</span>
+        <span class="ls-stat-caption">Completed lecture notes read</span>
+      </div>
+      <div class="ls-stat-card">
+        <span class="ls-stat-label">Rewards Unlocked</span>
+        <span class="ls-stat-value mono" style="color: var(--gold);">{{ metrics.vouchers_count }}</span>
+        <span class="ls-stat-caption">Discount &amp; academic vouchers</span>
+      </div>
+    </div>
+
+    <!-- Quick Navigation Hub Banner -->
+    <div class="ls-hub-banner">
+      <div class="ls-hub-info">
+        <span class="ls-badge-icon">LS</span>
+        <div>
+          <strong style="color: var(--navy); font-size: 1.05rem; display: block;">Student Learning Ledger</strong>
+          <span style="color: var(--ink-soft); font-size: 0.88rem;">
+            Jump straight into your active lessons, track progress gauges, and view unlocked rewards.
+          </span>
+        </div>
+      </div>
+      <div class="ls-hub-actions">
+        <a href="{% url 'ls_my_learning' %}" class="btn btn-primary btn-sm">My Learning Ledger &rarr;</a>
+        {% if user.role == 'faculty' or user.role == 'admin' or user.is_superuser %}
+          <a href="{% url 'ls_add_course' %}" class="btn btn-ghost btn-sm">+ Publish Course</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Search & Category Filter Bar -->
+    <div class="ls-filter-bar">
+      <form method="get" class="ls-search-form">
+        <div class="ls-search-input-wrap">
+          <svg class="ls-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" name="q" value="{{ q }}" placeholder="Search course titles, lectures, or topics (e.g. Python, SQL, Neural Networks)..." class="ls-search-input">
+        </div>
+        {% if cat %}
+          <input type="hidden" name="cat" value="{{ cat }}">
+        {% endif %}
+        <button type="submit" class="btn btn-primary" style="padding: 9px 20px;">Search</button>
+        {% if q or cat %}
+          <a href="{% url 'ls_catalog' %}" class="btn btn-ghost" style="padding: 9px 20px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none;">Clear</a>
+        {% endif %}
+      </form>
+
+      <!-- Category Filter Pills -->
+      <div class="ls-category-pills">
+        <span class="ls-pill-label">Category:</span>
+        <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}" class="ls-pill {% if not cat %}active{% endif %}">
+          All Categories
+        </a>
+        {% for c in cats %}
+          <a href="?cat={{ c|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}" class="ls-pill {% if cat == c %}active{% endif %}">
+            {{ c }}
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Course Cards Grid -->
+    <div class="ls-course-grid">
+      {% for course in courses %}
+        <a href="{% url 'ls_course_detail' course.id %}" class="ls-course-card">
+          <div class="ls-card-head">
+            <span class="ls-category-tag">{{ course.category }}</span>
+            <span class="ls-lesson-badge">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+              {{ course.n_lessons }} Lectures
+            </span>
+          </div>
+
+          <h3 class="ls-card-title">{{ course.title }}</h3>
+          <p class="ls-card-desc">{{ course.description }}</p>
+
+          {% if course.user_progress %}
+            <div class="ls-card-progress">
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-family: var(--font-mono); font-weight: 600; color: var(--navy);">
+                <span>Enrolled · {{ course.user_progress.2 }}% Complete</span>
+                <span>{{ course.user_progress.1 }}/{{ course.user_progress.0 }}</span>
+              </div>
+              <div class="ls-card-progress-bar">
+                <div class="ls-card-progress-fill" {% if course %}style="width: {{ course.user_progress.2 }}%;"{% endif %}></div>
+              </div>
+            </div>
+          {% endif %}
+
+          <div class="ls-card-foot">
+            <div class="ls-instructor-info">
+              <span class="ls-instructor-avatar">{{ course.instructor.username|slice:":2"|upper }}</span>
+              <span>Prof. {{ course.instructor.get_full_name|default:course.instructor.username }}</span>
+            </div>
+            <span class="ls-explore-link">
+              {% if course.user_progress %}Resume{% else %}Syllabus{% endif %} &rarr;
+            </span>
+          </div>
+        </a>
+      {% empty %}
+        <div class="card panel" style="grid-column: 1 / -1; padding: 48px; text-align: center; border: 1px dashed var(--rule);">
+          <h3 style="color: var(--navy); margin-bottom: 8px;">No Courses Found</h3>
+          <p style="color: var(--ink-soft); max-width: 480px; margin: 0 auto 20px;">
+            No courses matched your search criteria or category filter. Try clearing your filters to explore all available modules.
+          </p>
+          <a href="{% url 'ls_catalog' %}" class="btn btn-primary btn-sm">View All Courses</a>
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</main>
+{% endblock %}

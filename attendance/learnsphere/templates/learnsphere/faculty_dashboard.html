@@ -1,0 +1,139 @@
+{% extends 'attendance/base.html' %}
+{% load static %}
+
+{% block title %}Faculty Learning Studio — Cobra Coaching{% endblock %}
+
+{% block body %}
+<main class="page">
+  <div class="container">
+
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Instructor Dashboard · Course Management</span>
+        <h1>Faculty Learning Studio</h1>
+        <p>Manage your curriculum, publish new courses, and track student enrollments.</p>
+      </div>
+      <div class="stamp-wrapper">
+        <span class="rubber-stamp">LEARN SPHERE</span>
+      </div>
+    </div>
+
+    <!-- Faculty Metrics Ribbon -->
+    <div class="ls-metrics-grid">
+      <div class="ls-stat-card">
+        <span class="ls-stat-label">Courses Created</span>
+        <span class="ls-stat-value mono">{{ metrics.total_courses }}</span>
+        <span class="ls-stat-caption">Total authored courses</span>
+      </div>
+      <div class="ls-stat-card">
+        <span class="ls-stat-label">Published Courses</span>
+        <span class="ls-stat-value mono" style="color: var(--present);">{{ metrics.published_courses }}</span>
+        <span class="ls-stat-caption">Live and available</span>
+      </div>
+      <div class="ls-stat-card">
+        <span class="ls-stat-label">Total Enrolments</span>
+        <span class="ls-stat-value mono">{{ metrics.total_enrolments }}</span>
+        <span class="ls-stat-caption">Students in your courses</span>
+      </div>
+      <div class="ls-stat-card">
+        <span class="ls-stat-label">Learning Materials</span>
+        <span class="ls-stat-value mono" style="color: var(--gold);">{{ metrics.total_materials }}</span>
+        <span class="ls-stat-caption">Total lectures/modules</span>
+      </div>
+    </div>
+
+    <div class="ls-hub-banner">
+      <div class="ls-hub-info">
+        <span class="ls-badge-icon">FS</span>
+        <div>
+          <strong style="color: var(--navy); font-size: 1.05rem; display: block;">Course Authoring Tools</strong>
+          <span style="color: var(--ink-soft); font-size: 0.88rem;">
+            Draft new courses, update existing lectures, and control publication status.
+          </span>
+        </div>
+      </div>
+      <div class="ls-hub-actions">
+        <a href="{% url 'ls_add_course' %}" class="btn btn-primary btn-sm">+ Create New Course</a>
+      </div>
+    </div>
+
+    <!-- Search & Category Filter Bar -->
+    <div class="ls-filter-bar">
+      <form method="get" class="ls-search-form">
+        <div class="ls-search-input-wrap">
+          <svg class="ls-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" name="q" value="{{ q }}" placeholder="Search your courses..." class="ls-search-input">
+        </div>
+        {% if cat %}
+          <input type="hidden" name="cat" value="{{ cat }}">
+        {% endif %}
+        <button type="submit" class="btn btn-primary" style="padding: 9px 20px;">Search</button>
+        {% if q or cat %}
+          <a href="{% url 'ls_catalog' %}" class="btn btn-ghost" style="padding: 9px 20px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none;">Clear</a>
+        {% endif %}
+      </form>
+
+      <div class="ls-category-pills">
+        <span class="ls-pill-label">Category:</span>
+        <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}" class="ls-pill {% if not cat %}active{% endif %}">
+          All
+        </a>
+        {% for c in cats %}
+          <a href="?cat={{ c|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}" class="ls-pill {% if cat == c %}active{% endif %}">
+            {{ c }}
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Course Cards Grid -->
+    <div class="ls-course-grid">
+      {% for course in courses %}
+        <div class="ls-course-card">
+          <div class="ls-card-head">
+            <span class="ls-category-tag">{{ course.category }}</span>
+            {% if course.is_published %}
+              <span class="ls-lesson-badge" style="color: var(--present); font-weight: 600;">● Published</span>
+            {% else %}
+              <span class="ls-lesson-badge" style="color: var(--gold); font-weight: 600;">○ Draft</span>
+            {% endif %}
+          </div>
+
+          <h3 class="ls-card-title">{{ course.title }}</h3>
+          <p class="ls-card-desc">{{ course.description }}</p>
+
+          <div style="display: flex; gap: 10px; margin-bottom: 16px; font-size: 0.85rem; color: var(--ink-soft);">
+            <span><strong>{{ course.n_lessons }}</strong> Lectures</span>
+            <span>&bull;</span>
+            <span><strong>{{ course.n_students }}</strong> Enrollments</span>
+          </div>
+
+          <div class="ls-card-foot" style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <a href="{% url 'ls_edit_course' course.id %}" class="btn btn-ghost btn-sm" style="flex: 1; min-width: 80px; text-align: center;">Edit</a>
+            <a href="{% url 'ls_manage_lectures' course.id %}" class="btn btn-ghost btn-sm" style="flex: 1; min-width: 80px; text-align: center;">Lectures</a>
+            <a href="{% url 'ls_course_detail' course.id %}" class="btn btn-ghost btn-sm" style="flex: 1; min-width: 80px; text-align: center;">Preview</a>
+            <form action="{% url 'ls_toggle_publish' course.id %}" method="post" style="flex: 1; min-width: 80px;">
+              {% csrf_token %}
+              <button type="submit" class="btn {% if course.is_published %}btn-ghost{% else %}btn-primary{% endif %} btn-sm" style="width: 100%; text-align: center;">
+                {% if course.is_published %}Unpublish{% else %}Publish{% endif %}
+              </button>
+            </form>
+          </div>
+        </div>
+      {% empty %}
+        <div class="card panel" style="grid-column: 1 / -1; padding: 48px; text-align: center; border: 1px dashed var(--rule);">
+          <h3 style="color: var(--navy); margin-bottom: 8px;">No Courses Found</h3>
+          <p style="color: var(--ink-soft); max-width: 480px; margin: 0 auto 20px;">
+            You haven't authored any courses matching these filters. Create a new course to get started.
+          </p>
+          <a href="{% url 'ls_add_course' %}" class="btn btn-primary btn-sm">+ Create New Course</a>
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</main>
+{% endblock %}

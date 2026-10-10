@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="panel narrow">
+  <h2>{{ 'Create account' if mode == 'register' else 'Welcome back' }}</h2>
+  <form method="post">
+    {% if mode == 'register' %}
+      <label>Full name</label><input name="name" required>
+    {% endif %}
+    <label>Email</label><input type="email" name="email" required>
+    <label>Password</label><input type="password" name="password" required minlength="6">
+    {% if mode == 'register' %}
+      <label>I am a</label>
+      <select name="role"><option value="student">Student</option><option value="instructor">Instructor</option></select>
+    {% endif %}
+    <button class="btn full">{{ 'Sign up' if mode == 'register' else 'Login' }}</button>
+  </form>
+  {% if mode == 'login' %}<p class="hint">Demo instructor: teacher@demo.com / teacher123</p>{% endif %}
+</div>
+{% endblock %}

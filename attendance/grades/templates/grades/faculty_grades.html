@@ -1,0 +1,159 @@
+{% extends 'attendance/base.html' %}
+{% load static %}
+
+{% block title %}Grade Management — Cobra Coaching{% endblock %}
+
+{% block body %}
+<main class="page">
+  <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 24px 32px;">
+
+    <div class="page-head" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+      <div>
+        <span class="eyebrow" style="font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--navy); margin-bottom: 6px; display: block;">
+          Faculty Grade Registry · {{ user.get_full_name|default:user.username }}
+        </span>
+        <h1 style="font-family: var(--font-display); font-size: 2.4rem; font-weight: 700; color: var(--ink); margin: 0 0 6px 0;">
+          Grade Registry &amp; Assessment
+        </h1>
+        <p style="margin: 0; color: var(--ink-soft); font-size: 0.95rem;">
+          Record continuous assessment marks, calculate final grade points, and verify student performance.
+        </p>
+      </div>
+
+      <!-- Course Switcher -->
+      {% if courses %}
+        <div style="background: var(--card); border: 1px solid var(--rule); padding: 8px 14px; border-radius: 4px;">
+          <form method="get" action="" style="display:flex; align-items:center; gap:8px; margin:0;">
+            <label for="course-select" style="font-family:var(--font-mono); font-size:0.75rem; text-transform:uppercase; color:var(--ink-soft); font-weight:600;">Course:</label>
+            <select name="course" id="course-select" onchange="this.form.submit()" class="custom-select" style="padding: 4px 28px 4px 10px;">
+              {% for c in courses %}
+                <option value="{{ c.pk }}" {% if selected_course and selected_course.pk == c.pk %}selected{% endif %}>
+                  {{ c.code }} — {{ c.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+
+    {% if not courses %}
+      <div class="card" style="background: var(--card); border: 1px solid var(--rule); padding: 32px; border-radius: 4px; text-align: center;">
+        <h3>No courses assigned</h3>
+        <p>You have not been assigned as instructor for any courses yet. Please contact the administrator.</p>
+      </div>
+    {% elif not selected_course %}
+      <div class="card" style="background: var(--card); border: 1px solid var(--rule); padding: 32px; border-radius: 4px; text-align: center;">
+        <p>Select a course to view and edit student grades.</p>
+      </div>
+    {% else %}
+
+      <!-- Course Summary Strip -->
+      <div class="stat-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:24px;">
+        <div class="card stat-card" style="background:var(--card); border:1px solid var(--rule); padding:18px 20px; border-radius:4px;">
+          <span class="stat-label">COURSE CODE</span>
+          <div class="stat-value" style="font-size: 1.8rem; margin:6px 0;">{{ selected_course.code }}</div>
+          <span class="stat-caption">{{ selected_course.name }}</span>
+        </div>
+        <div class="card stat-card" style="background:var(--card); border:1px solid var(--rule); padding:18px 20px; border-radius:4px;">
+          <span class="stat-label">ENROLLED STUDENTS</span>
+          <div class="stat-value" style="font-size: 1.8rem; margin:6px 0;">{{ students_data|length }}</div>
+          <span class="stat-caption">In roster</span>
+        </div>
+        <div class="card stat-card" style="background:var(--card); border:1px solid var(--rule); padding:18px 20px; border-radius:4px;">
+          <span class="stat-label">ACADEMIC CREDITS</span>
+          <div class="stat-value" style="font-size: 1.8rem; margin:6px 0;">4</div>
+          <span class="stat-caption">Weighting</span>
+        </div>
+        <div class="card stat-card" style="background:var(--card); border:1px solid var(--rule); padding:18px 20px; border-radius:4px;">
+          <span class="stat-label">EVALUATION SCALE</span>
+          <div class="stat-value" style="font-size: 1.8rem; color:var(--present); margin:6px 0;">10.0</div>
+          <span class="stat-caption">Max SGPA scale</span>
+        </div>
+      </div>
+
+      <!-- Grade Entry Table -->
+      <div class="card-panel table-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">{{ selected_course.code }}: Student Assessment Marks</h2>
+          <span style="font-family:var(--font-mono); font-size:0.8rem; color:var(--ink-soft);">
+            Internal (Max 20) · External (Max 80) · Total (100)
+          </span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="grades-table">
+            <thead>
+              <tr>
+                <th style="padding-left:24px; text-align:left;">ROLL NO</th>
+                <th style="text-align:left;">STUDENT NAME</th>
+                <th style="text-align:center;">INTERNAL (20)</th>
+                <th style="text-align:center;">EXTERNAL (80)</th>
+                <th style="text-align:center;">TOTAL (100)</th>
+                <th style="text-align:center;">GRADE</th>
+                <th style="text-align:center;">POINT</th>
+                <th style="text-align:center; padding-right:24px;">ACTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in students_data %}
+                <tr>
+                  <td class="col-code" style="padding-left:24px;">{{ item.student.roll_number|default:item.student.username }}</td>
+                  <td class="col-subject">{{ item.student.get_full_name|default:item.student.username }}</td>
+                  
+                  <form method="post" action="{% url 'save_student_marks' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="course_id" value="{{ selected_course.pk }}">
+                    <input type="hidden" name="student_id" value="{{ item.student.pk }}">
+
+                    <td style="text-align:center;">
+                      <input type="number" step="0.5" min="0" max="20" name="internal" value="{{ item.internal }}"
+                             placeholder="0" required
+                             style="width: 72px; padding: 4px 6px; text-align:center; font-family:var(--font-mono); border:1px solid var(--rule); border-radius:3px;">
+                    </td>
+                    <td style="text-align:center;">
+                      <input type="number" step="0.5" min="0" max="80" name="external" value="{{ item.external }}"
+                             placeholder="0" required
+                             style="width: 72px; padding: 4px 6px; text-align:center; font-family:var(--font-mono); border:1px solid var(--rule); border-radius:3px;">
+                    </td>
+                    <td style="text-align:center; font-family:var(--font-mono); font-weight:700;">
+                      {{ item.total|default:"—" }}
+                    </td>
+                    <td style="text-align:center;">
+                      {% if item.grade != '—' %}
+                        <span class="grade-pill {% if item.grade == 'A+' %}grade-pill-aplus{% elif item.grade == 'A' %}grade-pill-a{% elif item.grade == 'B+' %}grade-pill-bplus{% elif item.grade == 'F' %}grade-pill-fail{% endif %}">
+                          {{ item.grade }}
+                        </span>
+                      {% else %}
+                        <span style="color:var(--ink-soft); font-family:var(--font-mono);">—</span>
+                      {% endif %}
+                    </td>
+                    <td style="text-align:center; font-family:var(--font-mono); color:var(--ink-soft);">
+                      {{ item.grade_point }}
+                    </td>
+                    <td style="text-align:center; padding-right:24px;">
+                      <button type="submit" class="btn btn-sm btn-primary" style="padding: 4px 10px; font-size: 0.78rem;">Save</button>
+                      <a href="{% url 'student_grades' %}?student={{ item.student.pk }}" target="_blank"
+                         class="btn btn-sm btn-ghost" style="padding: 3px 8px; font-size: 0.78rem; text-decoration:none; margin-left:4px;" title="View Marksheet">
+                        Ledger &rarr;
+                      </a>
+                    </td>
+                  </form>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="8" style="text-align:center; padding:28px; color:var(--ink-soft);">
+                    No students currently enrolled in this course.
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    {% endif %}
+
+  </div>
+</main>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends 'attendance/base.html' %}
+{% load static %}
+
+{% block title %}Manage Lectures — LearnSphere{% endblock %}
+
+{% block body %}
+<main class="page">
+  <div class="container" style="max-width: 900px;">
+
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 20px;">
+      <a href="{% url 'ls_catalog' %}" style="display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.84rem; color: var(--navy); text-decoration: none; font-weight: 600;">
+        &larr; Back to Faculty Studio
+      </a>
+    </div>
+
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Faculty Control · Curriculum Authoring</span>
+        <h1>Manage Lectures</h1>
+        <p>Course: <strong>{{ course.title }}</strong></p>
+      </div>
+      <div class="stamp-wrapper">
+        <span class="rubber-stamp">AUTHOR</span>
+      </div>
+    </div>
+
+    <!-- Existing Lectures -->
+    <div style="margin-bottom: 30px;">
+      <h3 style="color: var(--navy); margin-bottom: 16px;">Curriculum</h3>
+      {% for lesson in lessons %}
+        <div class="card panel" style="padding: 20px; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; box-shadow: var(--shadow-card); margin-bottom: 16px;">
+          <form method="post" style="display: flex; flex-direction: column; gap: 12px;">
+            {% csrf_token %}
+            <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-family: var(--font-mono); font-size: 0.8rem; font-weight: bold; color: var(--gold);">Lecture {{ lesson.position }}</span>
+              <div>
+                <button type="submit" name="action" value="edit" class="btn btn-ghost btn-sm">Update</button>
+                <button type="submit" name="action" value="delete" class="btn btn-ghost btn-sm" style="color: red; border-color: red;" onsubmit="return confirm('Delete this lecture?');" onclick="return confirm('Delete this lecture?');">Delete</button>
+              </div>
+            </div>
+            
+            <input type="text" name="title" value="{{ lesson.title }}" required style="width: 100%; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 4px; font-family: var(--font-body); font-size: 1rem; background: var(--paper-2); outline: none;">
+            
+            <textarea name="content" rows="4" style="width: 100%; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 4px; font-family: var(--font-body); font-size: 0.9rem; background: var(--paper-2); resize: vertical; outline: none;">{{ lesson.content }}</textarea>
+          </form>
+        </div>
+      {% empty %}
+        <p style="color: var(--ink-soft); font-style: italic;">No lectures added yet.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Add New Lecture -->
+    <div class="card panel" style="padding: 24px; background: var(--paper-2); border: 1px dashed var(--navy); border-radius: 4px;">
+      <h4 style="color: var(--navy); margin-top: 0; margin-bottom: 16px;">+ Add New Lecture</h4>
+      <form method="post" style="display: flex; flex-direction: column; gap: 12px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add">
+        
+        <div>
+          <label style="display: block; font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; color: var(--navy); margin-bottom: 6px;">Lecture Title</label>
+          <input type="text" name="title" required placeholder="e.g. Introduction to the course" style="width: 100%; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 4px; font-family: var(--font-body); font-size: 1rem; outline: none;">
+        </div>
+        
+        <div>
+          <label style="display: block; font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; color: var(--navy); margin-bottom: 6px;">Lecture Content / Notes</label>
+          <textarea name="content" rows="5" placeholder="Detailed content..." style="width: 100%; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 4px; font-family: var(--font-body); font-size: 0.9rem; resize: vertical; outline: none;"></textarea>
+        </div>
+        
+        <div style="text-align: right; margin-top: 8px;">
+          <button type="submit" class="btn btn-primary">Add Lecture</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</main>
+{% endblock %}

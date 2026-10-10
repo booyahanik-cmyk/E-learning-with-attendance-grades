@@ -1,0 +1,362 @@
+{% extends 'attendance/base.html' %}
+{% load static %}
+
+{% block title %}{{ course.title }} — LearnSphere{% endblock %}
+
+{% block body %}
+<main class="page">
+  <div class="container">
+
+    <!-- Top Breadcrumb & Page Head -->
+    <div style="margin-bottom: 20px;">
+      <a href="{% url 'ls_catalog' %}" style="display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.84rem; color: var(--navy); text-decoration: none; font-weight: 600;">
+        &larr; Back to Course Catalog
+      </a>
+    </div>
+
+    <!-- Course Hero Banner -->
+    <section class="ls-hero-card">
+      <div class="ls-hero-meta">
+        <span class="ls-category-tag">{{ course.category }}</span>
+        <span class="eyebrow" style="margin: 0;">ACADEMIC MODULE #{{ course.id }}</span>
+        {% if enrolled %}
+          {% if stats.2 == 100 %}
+            <span class="stamp stamp-present">Course Completed</span>
+          {% else %}
+            <span class="stamp stamp-late">In Progress ({{ stats.2 }}%)</span>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <h1 class="ls-hero-title">{{ course.title }}</h1>
+      <p class="ls-hero-desc">{{ course.description }}</p>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--rule); padding-top: 16px; flex-wrap: wrap; gap: 14px;">
+        <div style="display: flex; align-items: center; gap: 12px; font-size: 0.92rem; color: var(--ink-soft);">
+          <span class="avatar" style="width: 32px; height: 32px; font-size: 0.8rem;">
+            {{ course.instructor.username|slice:":2"|upper }}
+          </span>
+          <span>Lead Instructor: <strong>Prof. {{ course.instructor.get_full_name|default:course.instructor.username }}</strong></span>
+        </div>
+        <div style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-soft);">
+          {{ lessons|length }} Lectures · Self-Paced Study
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Two-Column Academic Layout -->
+    <div class="ls-detail-layout">
+
+      <!-- LEFT COLUMN: Lecture Reader & Syllabus -->
+      <div>
+
+        {% if active_lesson %}
+          <!-- Active Lecture Reading Card -->
+          <article class="ls-reader-card" id="lecture-reader" style="scroll-margin-top: 90px;">
+            <div class="ls-reader-header">
+              <div>
+                <span class="ls-lecture-badge">
+                  LECTURE {{ active_lesson.position }} OF {{ lessons|length }}
+                </span>
+                <h2 class="ls-reader-title">{{ active_lesson.title }}</h2>
+                <div style="font-size: 0.84rem; color: var(--ink-soft); font-family: var(--font-mono);">
+                  Reading Time: ~10-15 mins · Reference Notes
+                </div>
+              </div>
+
+              {% if is_active_done %}
+                <span class="stamp stamp-present" style="font-size: 0.82rem; padding: 6px 14px;">
+                  ✓ Completed
+                </span>
+              {% endif %}
+            </div>
+
+            <div class="ls-reader-body" id="md-content">
+              <!-- Rendered by marked.js -->
+            </div>
+
+            <!-- Bottom Navigation & Completion Action -->
+            <div class="ls-reader-actions" style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; border-top: 1px dashed var(--rule); padding-top: 24px; margin-top: 24px;">
+              <div>
+                {% if prev_lesson %}
+                  <a href="?lesson={{ prev_lesson.id }}#lecture-reader" class="btn btn-ghost btn-sm" style="text-decoration: none;">
+                    &larr; Prev: Lecture {{ prev_lesson.position }}
+                  </a>
+                {% endif %}
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 12px;">
+                {% if enrolled %}
+                  {% if not is_active_done %}
+                    <form method="post" action="{% url 'ls_complete_lesson' active_lesson.id %}" style="margin: 0;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-primary" style="padding: 9px 20px;">
+                        ✓ Mark Lecture Complete &amp; Continue &rarr;
+                      </button>
+                    </form>
+                  {% else %}
+                    <div style="color: var(--present); font-family: var(--font-mono); font-size: 0.88rem; font-weight: 600;">
+                      ✓ Lecture Completed
+                    </div>
+                  {% endif %}
+                {% else %}
+                  <form method="post" action="{% url 'ls_enroll' course.id %}" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">Enroll to Mark Progress</button>
+                  </form>
+                {% endif %}
+
+                {% if next_lesson %}
+                  <a href="?lesson={{ next_lesson.id }}#lecture-reader" class="btn btn-ghost btn-sm" style="text-decoration: none;">
+                    Next: Lecture {{ next_lesson.position }} &rarr;
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          </article>
+        {% endif %}
+
+        <!-- Full Curriculum Outline / Syllabus Accordion -->
+        <section class="ls-syllabus-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--rule); padding-bottom: 12px;">
+            <div>
+              <h3 style="font-family: var(--font-display); font-size: 1.35rem; color: var(--navy); margin: 0 0 4px 0;">
+                Curriculum Syllabus
+              </h3>
+              <p style="margin: 0; font-size: 0.88rem; color: var(--ink-soft);">
+                Select any lecture below to read the comprehensive lecture notes.
+              </p>
+            </div>
+            <span class="mono" style="font-size: 0.85rem; color: var(--ink-soft); font-weight: 600;">
+              {{ stats.1 }}/{{ stats.0 }} Finished
+            </span>
+          </div>
+
+          <div style="display: flex; flex-direction: column;">
+            {% for lesson in lessons %}
+              <a href="?lesson={{ lesson.id }}#lecture-reader" class="ls-syllabus-item {% if active_lesson.id == lesson.id %}active{% endif %} {% if lesson.id in done_ids %}completed{% endif %}">
+                <div class="ls-item-left">
+                  <span class="ls-item-num">0{{ lesson.position }}</span>
+                  <div>
+                    <div class="ls-item-title">{{ lesson.title }}</div>
+                    <div style="font-size: 0.78rem; color: var(--ink-soft);">
+                      {{ lesson.content|truncatechars:75 }}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  {% if lesson.id in done_ids %}
+                    <span class="stamp stamp-present" style="font-size: 0.7rem;">Done</span>
+                  {% elif active_lesson.id == lesson.id %}
+                    <span class="stamp stamp-late" style="font-size: 0.7rem;">Reading</span>
+                  {% else %}
+                    <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-soft);">Start &rarr;</span>
+                  {% endif %}
+                </div>
+              </a>
+            {% empty %}
+              <p style="color: var(--ink-soft); text-align: center; padding: 24px;">No lectures available for this course yet.</p>
+            {% endfor %}
+          </div>
+        </section>
+
+        <!-- Faculty Management Actions -->
+        {% if user == course.instructor or user.role == 'admin' or user.is_superuser %}
+          <div style="margin-top: 36px; padding: 18px 24px; background: var(--paper-2); border: 1px dashed var(--rule); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.88rem; color: var(--ink-soft);">Faculty Control: You authored this course module.</span>
+            <form method="post" action="{% url 'ls_delete_course' course.id %}" onsubmit="return confirm('Are you sure you want to permanently delete this course and all its lectures?');" style="margin: 0;">
+              {% csrf_token %}
+              <button type="submit" style="background: transparent; color: var(--absent); border: 1px solid var(--absent); padding: 6px 14px; border-radius: 3px; font-weight: 600; cursor: pointer; font-size: 0.82rem;">
+                Delete Course
+              </button>
+            </form>
+          </div>
+        {% endif %}
+
+      </div>
+
+      <!-- RIGHT COLUMN: Sticky Progress & Rewards Sidebar -->
+      <aside class="ls-sidebar-sticky">
+
+        <!-- Enrollment / Progress Card -->
+        <div class="ls-sidebar-panel">
+          <h3 style="font-family: var(--font-display); font-size: 1.25rem; color: var(--navy); margin-bottom: 14px;">
+            Course Status
+          </h3>
+
+          {% if enrolled %}
+            <div class="ls-progress-meter-wrap">
+              <div class="ls-progress-numbers">
+                <span class="ls-progress-percent">{{ stats.2 }}%</span>
+                <span style="font-family: var(--font-mono); font-size: 0.84rem; color: var(--ink-soft);">
+                  {{ stats.1 }} of {{ stats.0 }} completed
+                </span>
+              </div>
+              <div class="ls-progress-track">
+                <div class="ls-progress-fill" {% if stats %}style="width: {{ stats.2 }}%;"{% endif %}></div>
+              </div>
+            </div>
+
+            {% if stats.2 == 100 %}
+              <div style="background: var(--present-bg); border: 1px solid #C2D5C8; padding: 12px; border-radius: 4px; margin-top: 14px; text-align: center; color: var(--present); font-weight: 600; font-size: 0.88rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                All Lectures Completed!
+              </div>
+            {% else %}
+              <p style="font-size: 0.85rem; color: var(--ink-soft); margin-top: 12px; margin-bottom: 0;">
+                Read each lecture note and click <em>Mark Lecture Complete</em> to advance your record toward earning the course reward voucher.
+              </p>
+            {% endif %}
+
+          {% else %}
+            <p style="font-size: 0.88rem; color: var(--ink-soft); margin-bottom: 20px;">
+              Enroll in this available academic track to track your progress, unlock lecture solutions, and earn course vouchers.
+            </p>
+            <form method="post" action="{% url 'ls_enroll' course.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary btn-block" style="padding: 12px; font-size: 0.96rem;">
+                Enroll in Course Now
+              </button>
+            </form>
+          {% endif %}
+        </div>
+
+        <!-- Reward Voucher Card -->
+        {% if voucher %}
+          <div class="ls-voucher-card">
+            <div class="ls-voucher-header">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="8" r="7"></circle>
+                <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+              </svg>
+              Reward Voucher Unlocked!
+            </div>
+            <div class="ls-voucher-discount">{{ voucher.discount }} Discount</div>
+            <div class="ls-voucher-brand">Reward Partner: <strong>{{ voucher.brand }}</strong></div>
+            <div class="ls-voucher-code-box" id="voucher-code-box" onclick="copyVoucherCode('{{ voucher.code }}')" title="Click to copy promo code">
+              <span>{{ voucher.code }}</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </div>
+            <div class="ls-copy-hint" id="copy-hint">Click code to copy to clipboard</div>
+          </div>
+        {% else %}
+          <div class="ls-voucher-locked">
+            <div class="ls-voucher-locked-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="7"></circle>
+                <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+              </svg>
+            </div>
+            <strong style="color: var(--navy); display: block; margin-bottom: 4px; font-size: 0.95rem;">
+              Course Reward Voucher
+            </strong>
+            <p style="font-size: 0.84rem; margin-bottom: 0;">
+              Complete all {{ stats.0 }} lectures in this module to generate an official student discount coupon for partner resources!
+            </p>
+          </div>
+        {% endif %}
+
+        <!-- Course Details Meta Card -->
+        <div class="ls-sidebar-panel" style="font-size: 0.88rem;">
+          <h4 style="font-family: var(--font-mono); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--navy); margin-bottom: 12px;">
+            Module Overview
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 10px; color: var(--ink-soft);">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--rule); padding-bottom: 6px;">
+              <span>Category</span>
+              <strong style="color: var(--ink);">{{ course.category }}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--rule); padding-bottom: 6px;">
+              <span>Curriculum Size</span>
+              <strong style="color: var(--ink);">{{ lessons|length }} Lectures</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--rule); padding-bottom: 6px;">
+              <span>Format</span>
+              <strong style="color: var(--ink);">Detailed Notes</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Certification</span>
+              <strong style="color: var(--present);">Voucher Award</strong>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+    </div>
+
+  </div>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']]
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  {% if active_lesson %}
+    const rawMarkdown = "{{ active_lesson.content|escapejs }}";
+    const contentDiv = document.getElementById('md-content');
+    if (contentDiv) {
+      contentDiv.innerHTML = marked.parse(rawMarkdown);
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([contentDiv]);
+      }
+    }
+  {% endif %}
+});
+
+function copyVoucherCode(code) {
+  navigator.clipboard.writeText(code).then(function() {
+    const hint = document.getElementById('copy-hint');
+    if (hint) {
+      hint.innerText = 'Copied code to clipboard!';
+      hint.style.color = 'var(--present)';
+      setTimeout(function() {
+        hint.innerText = 'Click code to copy to clipboard';
+        hint.style.color = 'var(--ink-soft)';
+      }, 3000);
+    }
+  });
+}
+</script>
+<style>
+  .ls-reader-body pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+  .ls-reader-body code {
+    background: rgba(0,0,0,0.06);
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.9em;
+  }
+  .ls-reader-body pre code {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+  }
+</style>
+{% endblock %}

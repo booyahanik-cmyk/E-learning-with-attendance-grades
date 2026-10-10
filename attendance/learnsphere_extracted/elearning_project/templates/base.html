@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LearnSphere - E-Learning Platform</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<nav class="nav">
+  <a class="logo" href="{{ url_for('index') }}">🎓 Learn<span>Sphere</span></a>
+  <div class="links">
+    <a href="{{ url_for('index') }}">Courses</a>
+    {% if user %}
+      <a href="{{ url_for('my_learning') }}">My Learning</a>
+      {% if user['role'] == 'instructor' %}<a href="{{ url_for('add_course') }}">+ New Course</a>{% endif %}
+      <span class="hi">Hi, {{ user['name'].split()[0] }}</span>
+      <a class="btn small ghost" href="{{ url_for('logout') }}">Logout</a>
+    {% else %}
+      <a href="{{ url_for('login') }}">Login</a>
+      <a class="btn small" href="{{ url_for('register') }}">Sign up</a>
+    {% endif %}
+  </div>
+</nav>
+{% with msgs = get_flashed_messages(with_categories=true) %}
+  {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
+{% endwith %}
+<main>{% block content %}{% endblock %}</main>
+<footer>Made with Flask &amp; SQLite · College Project</footer>
+</body>
+</html>

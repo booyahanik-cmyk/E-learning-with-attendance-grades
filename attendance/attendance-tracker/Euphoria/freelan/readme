@@ -1,0 +1,4 @@
+#python -m pip install django
+#python -m django startproject freelan
+#cd .\freelan\
+#python manage.py runserver

@@ -1,0 +1,91 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Attendance Register — ChronosClass{% endblock %}
+
+{% block nav %}
+      <a href="{% url 'faculty_dashboard' %}">Dashboard</a>
+      <a href="{% url 'attendance_register' %}" class="active">Attendance</a>
+      <a href="{% url 'reports' %}">Reports</a>
+{% endblock %}
+
+{% block body %}
+<main class="page">
+  <div class="container">
+
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">{% if course %}{{ course.code }} · {{ course.name }}{% else %}No course selected{% endif %}</span>
+        <h1>{% if day == today %}Today's roll call{% else %}Roll call · {{ day|date:"j F Y" }}{% endif %}</h1>
+        {% if course %}
+          <p>Mark each student, then save the register.
+            {% if saved_before %}This register was already saved — saving again updates it.{% endif %}</p>
+        {% else %}
+          <p>No courses are assigned to your account yet.</p>
+        {% endif %}
+      </div>
+      {% if rows %}<button class="btn btn-primary" type="submit" form="register-form">Save register</button>{% endif %}
+    </div>
+
+    {% for message in messages %}
+      <p class="{% if message.tags == 'error' %}form-error{% else %}form-note{% endif %}">{{ message }}</p>
+    {% endfor %}
+
+    <form method="get" class="toolbar">
+      <div class="toolbar-group">
+        <select name="course" aria-label="Select course" onchange="this.form.submit()">
+          {% for option in courses %}
+            <option value="{{ option.pk }}"{% if option.pk == course.pk %} selected{% endif %}>{{ option.code }} — {{ option.name }}</option>
+          {% empty %}
+            <option>No courses assigned</option>
+          {% endfor %}
+        </select>
+        <input type="date" name="date" value="{{ day|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}"
+               aria-label="Select date" onchange="this.form.submit()">
+        <button class="btn btn-ghost btn-sm" type="submit">Open register</button>
+      </div>
+      <span class="summary mono">{% if course %}{{ marked.present }} Present · {{ marked.late }} Late · {{ marked.absent }} Absent — of {{ rows|length }}{% else %}—{% endif %}</span>
+    </form>
+
+    <form method="post" id="register-form">
+      {% csrf_token %}
+      <input type="hidden" name="course" value="{{ course.pk|default_if_none:'' }}">
+      <input type="hidden" name="date" value="{{ day|date:'Y-m-d' }}">
+      <table class="register">
+        <thead>
+          <tr>
+            <th style="width:60px">Roll</th>
+            <th>Student</th>
+            <th style="width:130px">Semester %</th>
+            <th style="width:170px">Mark status</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+          <tr>
+            <td class="roll-no">{{ row.student.roll_number|default:row.student.username }}</td>
+            <td><div class="student-cell"><span class="mini-avatar">{{ row.student.get_full_name|default:row.student.username|slice:":2"|upper }}</span> {{ row.student.get_full_name|default:row.student.username }}</div></td>
+            <td>
+              <div class="progress-mini" title="{% if row.held %}{{ row.percent }}% — {{ row.attended }} of {{ row.held }} classes{% else %}No classes recorded yet{% endif %}">
+                <span style="width:{{ row.percent|default_if_none:0 }}%{% if row.low %}; background:var(--absent){% endif %}"></span>
+              </div>
+            </td>
+            <td>
+              <div class="status-toggle">
+                <input type="radio" name="s{{ row.student.pk }}" id="s{{ row.student.pk }}p" value="P"{% if row.mark == 'P' %} checked{% endif %}><label class="p" for="s{{ row.student.pk }}p">P</label>
+                <input type="radio" name="s{{ row.student.pk }}" id="s{{ row.student.pk }}l" value="L"{% if row.mark == 'L' %} checked{% endif %}><label class="l" for="s{{ row.student.pk }}l">L</label>
+                <input type="radio" name="s{{ row.student.pk }}" id="s{{ row.student.pk }}a" value="A"{% if row.mark == 'A' %} checked{% endif %}><label class="a" for="s{{ row.student.pk }}a">A</label>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4">{% if course %}No students are enrolled in {{ course.code }} yet — enrolment is managed in Django admin.{% else %}Nothing to mark.{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </form>
+
+  </div>
+</main>
+{% endblock %}

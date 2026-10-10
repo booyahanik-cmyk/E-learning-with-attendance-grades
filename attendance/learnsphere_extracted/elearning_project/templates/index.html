@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>Learn new skills. <span>Earn real rewards.</span></h1>
+  <p>Finish a course and unlock voucher codes from top brands.</p>
+  <form class="search" method="get">
+    <input name="q" value="{{ q }}" placeholder="Search courses...">
+    <button class="btn">Search</button>
+  </form>
+  <div class="chips">
+    <a class="chip {{ 'on' if not cat }}" href="{{ url_for('index') }}">All</a>
+    {% for c in cats %}<a class="chip {{ 'on' if c == cat }}" href="{{ url_for('index', cat=c) }}">{{ c }}</a>{% endfor %}
+  </div>
+</section>
+<h2 class="section">Available Courses ({{ courses|length }})</h2>
+<div class="grid">
+  {% for c in courses %}
+  <a class="card" href="{{ url_for('course', cid=c['id']) }}">
+    <div class="icon">{{ c['icon'] }}</div>
+    <span class="tag">{{ c['category'] }}</span>
+    <h3>{{ c['title'] }}</h3>
+    <p>{{ c['description'][:90] }}{% if c['description']|length > 90 %}…{% endif %}</p>
+    <div class="meta">👨‍🏫 {{ c['teacher'] }} · 📖 {{ c['n_lessons'] }} lessons · 👥 {{ c['n_students'] }}</div>
+  </a>
+  {% else %}<p class="empty">No courses found.</p>{% endfor %}
+</div>
+{% endblock %}

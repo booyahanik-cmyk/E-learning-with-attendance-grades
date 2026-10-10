@@ -1,0 +1,757 @@
+/* =========================================================
+   CHRONOSCLASS - LEARNSPHERE STYLESHEET
+   Harmonized with Academic Register & Grade Ledger Aesthetics
+   Features: Navy, Gold, Ruled Parchment, Fraunces Typography
+   ========================================================= */
+
+/* --- 1. METRICS & HERO BANNER --- */
+.ls-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 900px) {
+  .ls-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .ls-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ls-stat-card {
+  background: var(--card, #FBFAF5);
+  border: 1px solid var(--rule, #D9D2BD);
+  border-radius: var(--radius, 4px);
+  padding: 18px 22px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.ls-stat-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--rule, #D9D2BD);
+  transition: background 0.2s ease;
+}
+
+.ls-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(30, 42, 56, 0.12);
+}
+
+.ls-stat-card:hover::after {
+  background: var(--gold, #C6963B);
+}
+
+.ls-stat-label {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft, #4A5568);
+  text-transform: uppercase;
+}
+
+.ls-stat-value {
+  font-family: var(--font-display, serif);
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ink, #1E2A38);
+  margin: 6px 0 4px 0;
+}
+
+.ls-stat-caption {
+  font-size: 0.82rem;
+  color: var(--ink-soft, #4A5568);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Quick Hub Banner */
+.ls-hub-banner {
+  background: var(--card, #FBFAF5);
+  border: 1px solid var(--rule, #D9D2BD);
+  border-left: 4px solid var(--gold, #C6963B);
+  border-radius: var(--radius, 4px);
+  padding: 16px 24px;
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: var(--shadow-card);
+  flex-wrap: wrap;
+}
+
+.ls-hub-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ls-badge-icon {
+  font-family: var(--font-mono, monospace);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--gold, #C6963B);
+  border: 1.5px solid var(--gold, #C6963B);
+  padding: 6px 12px;
+  border-radius: 4px;
+  background: rgba(198, 150, 59, 0.06);
+  user-select: none;
+}
+
+.ls-hub-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* --- 2. SEARCH & CATEGORY FILTER BAR --- */
+.ls-filter-bar {
+  background: var(--card, #FBFAF5);
+  border: 1px solid var(--rule, #D9D2BD);
+  border-radius: var(--radius, 4px);
+  padding: 16px 20px;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ls-search-form {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .ls-search-form {
+    grid-template-columns: 1fr;
+  }
+  .ls-search-form button, .ls-search-form a.btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.ls-search-input-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.ls-search-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 10px 14px 10px 38px;
+  background: var(--paper-2, #EAE5D6);
+  border: 1px solid var(--rule, #D9D2BD);
+  border-radius: var(--radius, 4px);
+  font-family: var(--font-body, sans-serif);
+  font-size: 0.95rem;
+  color: var(--ink, #1E2A38);
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.ls-search-input:focus {
+  border-color: var(--navy, #26365C);
+  background: #FFFFFF;
+}
+
+.ls-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-soft, #4A5568);
+  pointer-events: none;
+}
+
+.ls-category-pills {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px dashed var(--rule, #D9D2BD);
+}
+
+.ls-pill-label {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--ink-soft, #4A5568);
+  letter-spacing: 0.08em;
+  margin-right: 4px;
+}
+
+.ls-pill {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--rule, #D9D2BD);
+  color: var(--ink, #1E2A38);
+  background: transparent;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ls-pill:hover {
+  border-color: var(--navy, #26365C);
+  background: rgba(38, 54, 92, 0.05);
+}
+
+.ls-pill.active {
+  background: var(--navy, #26365C);
+  color: #FFFFFF;
+  border-color: var(--navy, #26365C);
+  font-weight: 600;
+}
+
+/* --- 3. COURSE CARDS GRID --- */
+.ls-course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+@media (max-width: 720px) {
+  .ls-course-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ls-course-card {
+  background: var(--card, #FBFAF5);
+  border: 1px solid var(--rule, #D9D2BD);
+  border-radius: var(--radius, 4px);
+  padding: 24px;
+  box-shadow: var(--shadow-card);
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+}
+
+.ls-course-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px -4px rgba(30, 42, 56, 0.18);
+  border-color: var(--gold, #C6963B);
+}
+
+.ls-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  gap: 12px;
+}
+
+.ls-category-tag {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold, #C6963B);
+  border: 1px solid var(--gold, #C6963B);
+  background: rgba(198, 150, 59, 0.06);
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+
+.ls-lesson-badge {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.78rem;
+  color: var(--ink-soft, #4A5568);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ls-card-title {
+  font-family: var(--font-display, serif);
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--navy, #26365C);
+  line-height: 1.25;
+  margin: 0 0 10px 0;
+}
+
+.ls-card-desc {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--ink-soft, #4A5568);
+  margin-bottom: 20px;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Card Progress bar if enrolled */
+.ls-card-progress {
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  background: var(--paper-2, #EAE5D6);
+  border-radius: 4px;
+  border: 1px solid var(--rule, #D9D2BD);
+}
+
+.ls-card-progress-bar {
+  height: 6px;
+  background: rgba(30, 42, 56, 0.12);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.ls-card-progress-fill {
+  height: 100%;
+  background: var(--present, #3F6C51);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.ls-card-foot {
+  border-top: 1px solid var(--rule, #D9D2BD);
+  padding-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.83rem;
+  color: var(--ink-soft, #4A5568);
+}
+
+.ls-instructor-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ls-instructor-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--navy, #26365C);
+  color: #FFFFFF;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ls-explore-link {
+  font-family: var(--font-mono, monospace);
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--navy, #26365C);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: gap 0.15s ease, color 0.15s ease;
+}
+
+.ls-course-card:hover .ls-explore-link {
+  gap: 8px;
+  color: var(--gold, #C6963B);
+}
+
+/* --- 4. COURSE DETAIL & LECTURE VIEWER LAYOUT --- */
+.ls-detail-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .ls-detail-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Course Header Hero */
+.ls-hero-card {
+  background: var(--card, #FBFAF5);
+  border: 1px solid var(--rule, #D9D2BD);
+  border-radius: var(--radius, 4px);
+  padding: 30px 34px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 28px;
+  position: relative;
+}
+
+.ls-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.ls-hero-title {
+  font-family: var(--font-display, serif);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--navy, #26365C);
+  margin: 0 0 12px 0;
+  letter-spacing: -0.015em;
+}
+
+.ls-hero-desc {
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--ink, #1E2A38);
+  margin-bottom: 24px;
+}
+
+/* Active Lecture Reader Panel */
+.ls-reader-card {
+  background: var(--card, #FBFAF5);
+  border: 1px solid var(--rule, #D9D2BD);
+  border-radius: var(--radius, 4px);
+  padding: 32px 36px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 28px;
+}
+
+.ls-reader-header {
+  border-bottom: 1px solid var(--rule, #D9D2BD);
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ls-lecture-badge {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--navy, #26365C);
+  background: var(--paper-2, #EAE5D6);
+  border: 1px solid var(--rule, #D9D2BD);
+  padding: 4px 10px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-bottom: 10px;
+  letter-spacing: 0.06em;
+}
+
+.ls-reader-title {
+  font-family: var(--font-display, serif);
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--navy, #26365C);
+  margin: 0 0 6px 0;
+  line-height: 1.2;
+}
+
+.ls-reader-body {
+  font-family: var(--font-body, sans-serif);
+  font-size: 1.02rem;
+  line-height: 1.75;
+  color: var(--ink, #1E2A38);
+}
+
+.ls-reader-body p {
+  margin-bottom: 1.25em;
+  color: var(--ink, #1E2A38);
+}
+
+.ls-reader-body h4 {
+  font-family: var(--font-display, serif);
+  font-size: 1.25rem;
+  color: var(--navy, #26365C);
+  margin: 1.8em 0 0.6em 0;
+  font-weight: 600;
+  border-bottom: 1px dashed var(--rule, #D9D2BD);
+  padding-bottom: 6px;
+}
+
+.ls-reader-body ul, .ls-reader-body ol {
+  margin: 0 0 1.4em 1.5em;
+  padding: 0;
+}
+
+.ls-reader-body li {
+  margin-bottom: 0.5em;
+}
+
+/* Callout Box inside lecture notes */
+.ls-callout {
+  background: rgba(198, 150, 59, 0.08);
+  border-left: 3px solid var(--gold, #C6963B);
+  border-radius: 0 4px 4px 0;
+  padding: 14px 18px;
+  margin: 1.6em 0;
+  font-size: 0.95rem;
+  color: var(--ink, #1E2A38);
+}
+
+.ls-callout-title {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--gold, #C6963B);
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+/* Code block inside lecture */
+.ls-code-block {
+  background: #192231;
+  color: #E2E8F0;
+  border-radius: 4px;
+  padding: 16px 20px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  margin: 1.5em 0;
+  border: 1px solid #2D3748;
+}
+
+/* Reader Navigation Footer */
+.ls-reader-actions {
+  border-top: 1px solid var(--rule, #D9D2BD);
+  padding-top: 22px;
+  margin-top: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Syllabus Accordion / Outline List */
+.ls-syllabus-card {
+  background: var(--card, #FBFAF5);
+  border: 1px solid var(--rule, #D9D2BD);
+  border-radius: var(--radius, 4px);
+  padding: 24px 28px;
+  box-shadow: var(--shadow-card);
+}
+
+.ls-syllabus-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-radius: 4px;
+  border: 1px solid var(--rule, #D9D2BD);
+  margin-bottom: 12px;
+  text-decoration: none;
+  color: inherit;
+  background: #FFFFFF;
+  transition: all 0.15s ease;
+}
+
+.ls-syllabus-item:hover {
+  border-color: var(--navy, #26365C);
+  background: rgba(38, 54, 92, 0.03);
+  transform: translateX(3px);
+}
+
+.ls-syllabus-item.active {
+  border-left: 4px solid var(--navy, #26365C);
+  background: rgba(38, 54, 92, 0.05);
+  font-weight: 600;
+}
+
+.ls-syllabus-item.completed {
+  border-left: 4px solid var(--present, #3F6C51);
+  background: var(--present-bg, #E3ECE4);
+}
+
+.ls-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ls-item-num {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-soft, #4A5568);
+  min-width: 24px;
+}
+
+.ls-item-title {
+  font-size: 0.98rem;
+  color: var(--ink, #1E2A38);
+}
+
+/* Sidebar Panels */
+.ls-sidebar-sticky {
+  position: sticky;
+  top: 86px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ls-sidebar-panel {
+  background: var(--card, #FBFAF5);
+  border: 1px solid var(--rule, #D9D2BD);
+  border-radius: var(--radius, 4px);
+  padding: 24px;
+  box-shadow: var(--shadow-card);
+}
+
+.ls-progress-meter-wrap {
+  margin: 16px 0;
+}
+
+.ls-progress-numbers {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.ls-progress-percent {
+  font-family: var(--font-display, serif);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--navy, #26365C);
+}
+
+.ls-progress-track {
+  height: 8px;
+  background: var(--paper-2, #EAE5D6);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--rule, #D9D2BD);
+}
+
+.ls-progress-fill {
+  height: 100%;
+  background: var(--present, #3F6C51);
+  transition: width 0.35s ease;
+}
+
+/* --- 5. VOUCHER & REWARDS STYLING --- */
+.ls-voucher-card {
+  border: 2px dashed var(--gold, #C6963B);
+  border-radius: 6px;
+  background: #FFFDF7;
+  padding: 22px;
+  text-align: center;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.ls-voucher-header {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--gold, #C6963B);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ls-voucher-discount {
+  font-family: var(--font-display, serif);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--navy, #26365C);
+  margin: 0 0 4px 0;
+}
+
+.ls-voucher-brand {
+  font-size: 0.86rem;
+  color: var(--ink-soft, #4A5568);
+  margin-bottom: 14px;
+}
+
+.ls-voucher-code-box {
+  background: #FFFFFF;
+  border: 1px solid var(--rule, #D9D2BD);
+  border-radius: 4px;
+  padding: 8px 14px;
+  font-family: var(--font-mono, monospace);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--ink, #1E2A38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ls-voucher-code-box:hover {
+  border-color: var(--gold, #C6963B);
+  background: #FFFDF7;
+}
+
+.ls-voucher-locked {
+  background: var(--paper-2, #EAE5D6);
+  border: 1px dashed var(--rule, #D9D2BD);
+  border-radius: 6px;
+  padding: 20px;
+  text-align: center;
+  color: var(--ink-soft, #4A5568);
+}
+
+.ls-voucher-locked-icon {
+  font-size: 1.6rem;
+  margin-bottom: 6px;
+  opacity: 0.5;
+}
+
+/* Copy notification toast */
+.ls-copy-hint {
+  font-size: 0.74rem;
+  color: var(--ink-soft, #4A5568);
+  margin-top: 6px;
+  font-family: var(--font-mono, monospace);
+}

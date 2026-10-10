@@ -1,0 +1,108 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Dashboard — Cobra Coaching{% endblock %}
+
+
+
+{% block body %}
+<main class="page">
+  <div class="container">
+
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">{{ today|date:"l, j F Y" }}</span>
+        <h1>Good day, {{ user.get_full_name|default:user.username }}.</h1>
+        {% if not courses %}
+          <p>No courses are assigned to your account yet — an admin can add them in Django admin.</p>
+        {% elif registers_open_today %}
+          <p>Still to mark today:
+            {% for course in registers_open_today %}{{ course.code }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+        {% else %}
+          <p>Every register for {{ today|date:"j F" }} has been saved.</p>
+        {% endif %}
+      </div>
+      <a href="{% url 'attendance_register' %}" class="btn btn-primary">Take today's roll call</a>
+    </div>
+
+    <div class="stat-grid">
+      <div class="card stat-card">
+        <span class="label">Overall attendance</span>
+        <span class="value mono">{{ overall.percent|default_if_none:"—" }}{% if overall.percent != None %}%{% endif %}</span>
+        {% if week_delta != None %}
+          <span class="delta {% if week_delta < 0 %}delta-down{% else %}delta-up{% endif %}">
+            {% if week_delta < 0 %}↓{% else %}↑{% endif %} {{ week_delta|floatformat:1 }}% vs last week</span>
+        {% else %}
+          <span class="delta">{{ overall.held }} record{{ overall.held|pluralize }} in total</span>
+        {% endif %}
+      </div>
+      <div class="card stat-card">
+        <span class="label">Courses you teach</span>
+        <span class="value mono">{{ courses|length }}</span>
+        <span class="delta">{{ registers_open_today|length }} register{{ registers_open_today|pluralize }} still open</span>
+      </div>
+      <div class="card stat-card">
+        <span class="label">Students below {{ threshold }}%</span>
+        <span class="value mono"{% if at_risk_count %} style="color:var(--absent)"{% endif %}>{{ at_risk_count }}</span>
+        <span class="delta {% if at_risk_count %}delta-down{% endif %}">across {{ courses|length }} course{{ courses|pluralize }}</span>
+      </div>
+      <div class="card stat-card">
+        <span class="label">Marked present today</span>
+        <span class="value mono">{{ today_totals.attended }}<span style="font-size:1rem;color:var(--ink-soft)">/{{ today_totals.held }}</span></span>
+        <span class="delta {% if today_totals.percent != None and not today_totals.low %}delta-up{% endif %}">
+          {% if today_totals.percent != None %}{{ today_totals.percent }}% so far{% else %}nothing marked yet{% endif %}</span>
+      </div>
+    </div>
+
+    <!-- Grade Management Quick Banner -->
+    <div class="card" style="margin-bottom: 24px; padding: 16px 22px; background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--navy); display: flex; align-items: center; justify-content: space-between; border-radius: 4px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <span style="font-family: var(--font-mono); font-weight: 700; color: var(--navy); font-size: 1.1rem; border: 1.5px solid var(--navy); padding: 2px 8px; border-radius: 4px;">GRD</span>
+        <div>
+          <strong style="color: var(--ink); font-size: 0.96rem;">Faculty Grade Registry &amp; Assessment</strong>
+          <div style="color: var(--ink-soft); font-size: 0.85rem;">Input continuous assessment marks, calculate final SGPA, and publish student marksheets.</div>
+        </div>
+      </div>
+      <a href="{% url 'faculty_grades' %}" class="btn btn-sm btn-primary" style="text-decoration: none;">Manage Grades &rarr;</a>
+    </div>
+
+    <div class="grid-2">
+      <div class="card panel">
+        <div class="panel-head">
+          <h3>Attendance this week</h3>
+          <a href="{% url 'reports' %}" class="btn btn-ghost">View full report</a>
+        </div>
+        <div class="bar-chart">
+          {% for day, row in week_days %}
+          <div class="bar-col{% if row.low %} low{% endif %}"><div class="bar" style="height:{{ row.percent|default_if_none:0 }}%" title="{{ day|date:'j M' }} — {% if row.held %}{{ row.attended }}/{{ row.held }}{% else %}no register{% endif %}"></div><span class="bar-label">{{ day|date:"D"|upper }}</span></div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="card panel">
+        <div class="panel-head">
+          <h3>Recent entries</h3>
+        </div>
+        <ul class="activity-list">
+          {% for entry in recent %}
+          <li>
+            <span>
+              <span class="who">{{ entry.code }} · {{ entry.name }}</span>
+              <span class="meta">Marked by {% if entry.marked_by == user.username %}you{% else %}{{ entry.marked_by }}{% endif %} · {{ entry.date|date:"D j M Y" }}</span>
+            </span>
+            <span class="stamp {{ entry.stamp }}">{{ entry.attended }}/{{ entry.held }}</span>
+          </li>
+          {% empty %}
+          <li>
+            <span>
+              <span class="who">No registers saved yet</span>
+              <span class="meta">Entries appear here once you mark attendance.</span>
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</main>
+{% endblock %}

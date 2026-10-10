@@ -1,0 +1,39 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}ChronosClass{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="{% url 'login' %}" class="brand">
+      <span class="brand-mark">RG</span>
+      ChronosClass
+    </a>
+    <nav class="nav-tabs">{% block nav %}{% endblock %}</nav>
+    <div class="nav-user">
+      <span>{{ user.get_full_name|default:user.username }} · {{ user.get_role_display }}</span>
+      <span class="avatar">{{ user.username|slice:":2"|upper }}</span>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit">Sign out</button>
+      </form>
+    </div>
+  </div>
+</header>
+
+{% block body %}{% endblock %}
+
+<footer class="site-footer">
+  <div class="container">
+    <span>&copy; 2026 The Register — Department of Computer Science</span>
+    <span>Front-end preview build</span>
+  </div>
+</footer>
+
+</body>
+</html>

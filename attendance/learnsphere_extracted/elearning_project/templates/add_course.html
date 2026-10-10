@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="panel">
+  <h2>Create a New Course</h2>
+  <form method="post">
+    <label>Course title</label><input name="title" required>
+    <div class="row">
+      <div><label>Category</label><input name="category" placeholder="e.g. Programming" required></div>
+      <div><label>Icon (emoji)</label><input name="icon" placeholder="📘" maxlength="2"></div>
+    </div>
+    <label>Description</label><textarea name="description" rows="3" required></textarea>
+    <label>Lessons (one per line, optional notes after a | )</label>
+    <textarea name="lessons" rows="6" placeholder="Intro | What we will learn&#10;Basics | Core concepts" required></textarea>
+    <button class="btn full">Publish Course</button>
+  </form>
+</div>
+{% endblock %}

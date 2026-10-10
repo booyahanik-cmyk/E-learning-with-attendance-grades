@@ -1,0 +1,134 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}My Attendance — ChronosClass{% endblock %}
+
+{% block nav %}
+      <a href="{% url 'student_home' %}" class="active">My Attendance</a>
+{% endblock %}
+
+{% block body %}
+<main class="page">
+  <div class="container">
+
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Roll {{ user.roll_number|default:user.username }} · Student</span>
+        <h1>Your attendance</h1>
+        {% if not courses %}
+          <p>You are not enrolled in any course yet. Once a faculty member enrols you, your
+             courses and percentages appear here.</p>
+        {% elif overall.percent == None %}
+          <p>You are enrolled in {{ courses|length }} course{{ courses|pluralize }}. No register has been
+             marked for you yet, so there is nothing to report.</p>
+        {% else %}
+          <p>Across {{ overall.held }} recorded class{{ overall.held|pluralize:"es" }} in
+             {{ courses|length }} course{{ courses|pluralize }}. A late arrival still counts as attended.</p>
+        {% endif %}
+      </div>
+      {% if overall.percent != None %}
+        <span class="stamp-big" style="color:var({% if overall.low %}--absent{% else %}--present{% endif %})">
+          {{ overall.percent }}%
+        </span>
+      {% endif %}
+    </div>
+
+    <div class="stat-grid">
+      <div class="card stat-card">
+        <span class="label">Overall attendance</span>
+        <span class="value mono"{% if overall.low %} style="color:var(--absent)"{% endif %}>{{ overall.percent|default_if_none:"—" }}{% if overall.percent != None %}%{% endif %}</span>
+        <span class="delta {% if overall.percent != None %}{% if overall.low %}delta-down{% else %}delta-up{% endif %}{% endif %}">
+          {% if overall.percent == None %}nothing recorded yet
+          {% elif overall.low %}below the {{ shortfall }}% requirement
+          {% else %}meets the {{ shortfall }}% requirement{% endif %}</span>
+      </div>
+      <div class="card stat-card">
+        <span class="label">Enrolled courses</span>
+        <span class="value mono">{{ courses|length }}</span>
+        <span class="delta">this semester</span>
+      </div>
+      <div class="card stat-card">
+        <span class="label">Classes attended</span>
+        <span class="value mono">{{ overall.attended }}<span style="font-size:1rem;color:var(--ink-soft)">/{{ overall.held }}</span></span>
+        <span class="delta">{{ overall.present }} present · {{ overall.late }} late</span>
+      </div>
+      <div class="card stat-card">
+        <span class="label">Absences</span>
+        <span class="value mono"{% if overall.absent %} style="color:var(--absent)"{% endif %}>{{ overall.absent }}</span>
+        <span class="delta">recorded against you</span>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card panel">
+        <div class="panel-head">
+          <h3>Course by course</h3>
+          <span class="summary mono">{{ courses|length }} enrolled</span>
+        </div>
+        <table class="register">
+          <thead>
+            <tr>
+              <th style="width:90px">Code</th>
+              <th>Course</th>
+              <th style="width:110px">Attended</th>
+              <th style="width:150px">Attendance</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for row in courses %}
+            <tr>
+              <td class="roll-no">{{ row.course.code }}</td>
+              <td>
+                <div class="student-cell">
+                  <span class="mini-avatar">{{ row.course.code|slice:":2"|upper }}</span>
+                  <span>{{ row.course.name }}
+                    <span class="meta">{{ row.course.faculty.get_full_name|default:row.course.faculty.username }}</span>
+                  </span>
+                </div>
+              </td>
+              <td class="mono">{{ row.attended }}/{{ row.held }}</td>
+              <td>
+                {% if row.held %}
+                  <span class="stamp {{ row.stamp }}">{{ row.percent }}%</span>
+                  <div class="progress-mini" style="margin-top:6px">
+                    <span style="width:{{ row.percent }}%{% if row.low %}; background:var(--absent){% endif %}"></span>
+                  </div>
+                {% else %}
+                  <span class="meta">No classes recorded</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4">Not enrolled in any course yet.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card panel">
+        <div class="panel-head">
+          <h3>Recent entries</h3>
+        </div>
+        <ul class="activity-list">
+          {% for record in history %}
+          <li>
+            <span>
+              <span class="who">{{ record.course.code }} · {{ record.course.name }}</span>
+              <span class="meta">{{ record.date|date:"D j M Y" }}</span>
+            </span>
+            <span class="stamp {% if record.status == 'P' %}stamp-present{% elif record.status == 'L' %}stamp-late{% else %}stamp-absent{% endif %}">{{ record.get_status_display }}</span>
+          </li>
+          {% empty %}
+          <li>
+            <span>
+              <span class="who">No attendance recorded yet</span>
+              <span class="meta">Each marked class will be listed here.</span>
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</main>
+{% endblock %}

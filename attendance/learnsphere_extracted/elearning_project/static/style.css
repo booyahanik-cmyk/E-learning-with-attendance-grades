@@ -1,0 +1,45 @@
+:root{--p:#6c5ce7;--p2:#a29bfe;--bg:#f5f6ff;--ink:#22223b;--mut:#6b7280}
+*{box-sizing:border-box;margin:0;font-family:'Segoe UI',system-ui,sans-serif}
+body{background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column}
+main{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:24px 20px}
+a{text-decoration:none;color:inherit}
+.nav{display:flex;justify-content:space-between;align-items:center;padding:14px 32px;background:#fff;box-shadow:0 2px 12px #0001;position:sticky;top:0;z-index:5;flex-wrap:wrap;gap:8px}
+.logo{font-size:1.4rem;font-weight:800}.logo span{color:var(--p)}
+.links{display:flex;gap:18px;align-items:center}.links a:hover{color:var(--p)}.hi{color:var(--mut)}
+.btn{background:linear-gradient(135deg,var(--p),var(--p2));color:#fff!important;border:0;padding:11px 22px;border-radius:10px;font-weight:600;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px #6c5ce755}
+.btn.small{padding:7px 14px;font-size:.85rem}.btn.full{width:100%;margin-top:14px}
+.btn.ghost{background:#fff;color:var(--p)!important;border:1.5px solid var(--p)}
+.btn.danger{background:#ef4444;margin-top:24px}
+.hero{background:linear-gradient(135deg,#6c5ce7,#a29bfe 60%,#fd79a8);color:#fff;border-radius:22px;padding:56px 32px;text-align:center;margin-bottom:30px}
+.hero h1{font-size:2.5rem}.hero h1 span{color:#ffeaa7}.hero p{margin:10px 0 22px;opacity:.9}
+.search{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.search input{padding:12px 18px;width:340px;max-width:100%;border-radius:10px;border:0}
+.search .btn{background:#22223b}
+.chips{margin-top:18px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.chip{padding:6px 16px;border-radius:20px;background:#ffffff33}.chip.on,.chip:hover{background:#fff;color:var(--p)}
+.section{margin:26px 0 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
+.card{background:#fff;border-radius:16px;padding:22px;box-shadow:0 4px 14px #0001;transition:.25s;display:block}
+.card:hover{transform:translateY(-6px);box-shadow:0 12px 28px #6c5ce733}
+.icon{font-size:2.2rem;background:#efedff;width:60px;height:60px;border-radius:14px;display:grid;place-items:center;margin-bottom:12px}
+.icon.big{width:80px;height:80px;font-size:3rem}
+.tag{background:#efedff;color:var(--p);padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600}
+.card h3{margin:10px 0 6px}.card p{color:var(--mut);font-size:.9rem}.meta,.muted,.hint{color:var(--mut);font-size:.82rem;margin-top:10px}
+.panel{background:#fff;border-radius:18px;padding:30px;box-shadow:0 4px 14px #0001}
+.panel.narrow{max-width:420px;margin:30px auto}
+label{display:block;margin:14px 0 6px;font-weight:600;font-size:.9rem}
+input,select,textarea{width:100%;padding:11px 14px;border:1.5px solid #e2e4f3;border-radius:10px;font-size:.95rem}
+input:focus,textarea:focus,select:focus{outline:0;border-color:var(--p)}
+.row{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+.cheader{display:flex;gap:18px;align-items:center;margin-bottom:14px}
+.bar{height:10px;background:#e9e9f7;border-radius:8px;overflow:hidden;margin-top:14px}
+.bar div{height:100%;background:linear-gradient(90deg,var(--p),#00b894);transition:width .5s}
+.lesson{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px;border:1.5px solid #eee;border-radius:12px;margin-bottom:10px}
+.lesson p{color:var(--mut);font-size:.88rem;margin-top:4px}.lesson.done{background:#f0fff8;border-color:#55efc4}
+.check{color:#00b894;font-size:1.5rem}
+.voucher{background:linear-gradient(135deg,#ffeaa7,#fdcb6e);padding:16px 20px;border-radius:14px;margin:18px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border:2px dashed #e17055}
+.code{background:#fff;padding:6px 14px;border-radius:8px;font-family:monospace;font-weight:700;letter-spacing:2px}
+.flash{max-width:1060px;margin:14px auto 0;padding:12px 18px;border-radius:10px;font-weight:600}
+.flash.ok{background:#d5f5e3;color:#1e8449}.flash.warn{background:#fdebd0;color:#b9770e}
+.empty{color:var(--mut)}footer{text-align:center;padding:20px;color:var(--mut);font-size:.85rem}

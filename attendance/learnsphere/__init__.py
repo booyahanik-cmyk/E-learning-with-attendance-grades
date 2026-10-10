@@ -1,0 +1,1 @@
+# LearnSphere Django app

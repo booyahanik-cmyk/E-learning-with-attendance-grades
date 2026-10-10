@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="section">My Learning</h2>
+<div class="grid">
+  {% for c, p in items %}
+  <a class="card" href="{{ url_for('course', cid=c['id']) }}">
+    <div class="icon">{{ c['icon'] }}</div><h3>{{ c['title'] }}</h3>
+    <div class="bar"><div style="width:{{ p[2] }}%"></div></div>
+    <div class="meta">{{ p[1] }}/{{ p[0] }} lessons · {{ p[2] }}%</div>
+  </a>
+  {% else %}<p class="empty">You have not enrolled in any course yet.</p>{% endfor %}
+</div>
+<h2 class="section">🎁 My Vouchers</h2>
+{% for v in vouchers %}
+<div class="voucher">{{ v['discount'] }} on <b>{{ v['brand'] }}</b> <small>(for {{ v['title'] }})</small>
+  <span class="code">{{ v['code'] }}</span></div>
+{% else %}<p class="empty">Complete a course to unlock rewards!</p>{% endfor %}
+{% endblock %}

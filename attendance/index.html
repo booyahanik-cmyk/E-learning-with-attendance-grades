@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your grades — Cobra Coaching</title>
+  <meta name="description" content="Cobra Coaching Academic Ledger — Subject-wise grades, marksheet and semester summary.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="topbar" id="main-nav">
+    <div class="topbar-container">
+      
+      <!-- Brand Identity -->
+      <div class="brand-group">
+        <img src="attendance/static/cobra_logo.png" alt="Cobra Coaching Logo" style="height: 48px; width: auto; object-fit: contain;">
+        <a href="#" class="brand-title">Cobra Coaching</a>
+      </div>
+
+      <!-- Center Navigation Links -->
+      <nav class="nav-links" aria-label="Main Navigation">
+        <a href="#dashboard" class="nav-link">Dashboard</a>
+        <a href="#attendance" class="nav-link">Attendance</a>
+        <a href="#grades" class="nav-link active-tab" aria-current="page">Grades</a>
+        <a href="#reports" class="nav-link">Reports</a>
+      </nav>
+
+      <!-- User Profile & Action -->
+      <div class="user-group">
+        <span class="user-meta" id="user-role-label">STU001 · Student</span>
+        <div class="user-avatar" id="user-avatar" title="Student Profile">ST</div>
+        <button type="button" class="btn-signout" id="btn-signout">Sign out</button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Content Page -->
+  <main class="page-body">
+    <div class="page-container">
+
+      <!-- Page Header & Tilted Stamp Badge -->
+      <section class="page-header">
+        <div class="header-titles">
+          <div class="eyebrow" id="page-eyebrow">
+            <span class="eyebrow-dash">—</span> SEMESTER 1 · GRADE MANAGEMENT
+          </div>
+          <h1 class="main-title" id="page-title">Your grades</h1>
+          <p class="main-subtitle" id="page-subtitle">View your subject-wise marks, grades and semester summary.</p>
+        </div>
+
+        <!-- Rubber Stamp Badge -->
+        <div class="stamp-wrapper">
+          <div class="rubber-stamp" id="sem-stamp" title="Official Semester Verification Stamp">
+            <span class="stamp-inner-text">SEM 1</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Key Metrics Row (4 Cards) -->
+      <section class="metrics-grid" aria-label="Key Performance Metrics">
+        
+        <!-- Card 1: Semester -->
+        <div class="stat-card" id="card-semester">
+          <span class="stat-label">SEMESTER</span>
+          <div class="stat-value" id="val-semester">1</div>
+          <span class="stat-caption">Current semester</span>
+        </div>
+
+        <!-- Card 2: SGPA -->
+        <div class="stat-card" id="card-sgpa">
+          <span class="stat-label">SGPA</span>
+          <div class="stat-value" id="val-sgpa">8.42</div>
+          <span class="stat-caption">Out of 10</span>
+        </div>
+
+        <!-- Card 3: Total Subjects -->
+        <div class="stat-card" id="card-subjects">
+          <span class="stat-label">TOTAL SUBJECTS</span>
+          <div class="stat-value" id="val-subjects">5</div>
+          <span class="stat-caption">With grades</span>
+        </div>
+
+        <!-- Card 4: Result Status -->
+        <div class="stat-card" id="card-status">
+          <span class="stat-label">RESULT STATUS</span>
+          <div class="stat-value status-pass" id="val-status">PASS</div>
+          <span class="stat-caption">All subjects completed</span>
+        </div>
+
+      </section>
+
+      <!-- Main Content Split: Subject Table & Summary/Quick Actions -->
+      <div class="content-split-grid">
+
+        <!-- Left Column: Subject-wise grades -->
+        <section class="card-panel table-panel" id="subject-grades-card">
+          <div class="panel-header">
+            <h2 class="panel-title">Subject-wise grades</h2>
+            <div class="select-wrapper">
+              <select id="semester-select" class="custom-select" aria-label="Select Semester">
+                <option value="1" selected>Semester 1</option>
+                <option value="2">Semester 2</option>
+                <option value="3">Semester 3</option>
+                <option value="4">Semester 4</option>
+              </select>
+              <span class="select-chevron" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <!-- Grade Table -->
+          <div class="table-responsive">
+            <table class="grades-table" id="grades-table">
+              <thead>
+                <tr>
+                  <th class="th-code">CODE</th>
+                  <th class="th-subject">SUBJECT</th>
+                  <th class="th-credits">CREDITS</th>
+                  <th class="th-internal">INTERNAL</th>
+                  <th class="th-external">EXTERNAL</th>
+                  <th class="th-total">TOTAL</th>
+                  <th class="th-grade">GRADE</th>
+                  <th class="th-gradepoint">GRADE POINT</th>
+                </tr>
+              </thead>
+              <tbody id="grades-tbody">
+                <tr>
+                  <td class="col-code">CS101</td>
+                  <td class="col-subject">Programming Fundamentals</td>
+                  <td class="col-credits">4</td>
+                  <td class="col-internal">18</td>
+                  <td class="col-external">62</td>
+                  <td class="col-total">80</td>
+                  <td class="col-grade"><span class="grade-pill grade-pill-a">A</span></td>
+                  <td class="col-gradepoint">9.0</td>
+                </tr>
+                <tr>
+                  <td class="col-code">CS102</td>
+                  <td class="col-subject">Digital Logic Design</td>
+                  <td class="col-credits">4</td>
+                  <td class="col-internal">16</td>
+                  <td class="col-external">54</td>
+                  <td class="col-total">70</td>
+                  <td class="col-grade"><span class="grade-pill grade-pill-bplus">B+</span></td>
+                  <td class="col-gradepoint">8.0</td>
+                </tr>
+                <tr>
+                  <td class="col-code">CS103</td>
+                  <td class="col-subject">Computer Organization</td>
+                  <td class="col-credits">4</td>
+                  <td class="col-internal">20</td>
+                  <td class="col-external">68</td>
+                  <td class="col-total">88</td>
+                  <td class="col-grade"><span class="grade-pill grade-pill-aplus">A+</span></td>
+                  <td class="col-gradepoint">10.0</td>
+                </tr>
+                <tr>
+                  <td class="col-code">MA101</td>
+                  <td class="col-subject">Engineering Mathematics</td>
+                  <td class="col-credits">4</td>
+                  <td class="col-internal">17</td>
+                  <td class="col-external">58</td>
+                  <td class="col-total">75</td>
+                  <td class="col-grade"><span class="grade-pill grade-pill-a">A</span></td>
+                  <td class="col-gradepoint">9.0</td>
+                </tr>
+                <tr>
+                  <td class="col-code">HS101</td>
+                  <td class="col-subject">Communication Skills</td>
+                  <td class="col-credits">2</td>
+                  <td class="col-internal">19</td>
+                  <td class="col-external">66</td>
+                  <td class="col-total">85</td>
+                  <td class="col-grade"><span class="grade-pill grade-pill-aplus">A+</span></td>
+                  <td class="col-gradepoint">10.0</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Right Column: Sidebar Cards -->
+        <aside class="sidebar-column">
+
+          <!-- Semester Summary Card -->
+          <div class="card-panel sidebar-card" id="summary-card">
+            <h2 class="panel-title panel-title-sm">Semester summary</h2>
+            <div class="summary-columns">
+              <div class="summary-metric">
+                <span class="summary-label">SGPA</span>
+                <div class="summary-value" id="summary-sgpa">8.42</div>
+                <span class="summary-caption">Out of 10</span>
+              </div>
+              <div class="summary-metric">
+                <span class="summary-label-alt">Total Credits</span>
+                <div class="summary-value" id="summary-credits">18</div>
+                <span class="summary-caption">Completed</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions Card -->
+          <div class="card-panel sidebar-card" id="actions-card">
+            <h2 class="panel-title panel-title-sm">Quick actions</h2>
+            <div class="actions-list">
+              
+              <!-- Action 1 -->
+              <button type="button" class="action-item-btn" id="action-report-card">
+                <div class="action-left">
+                  <span class="action-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                  </span>
+                  <span class="action-text">View detailed report card</span>
+                </div>
+                <span class="action-chevron" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </span>
+              </button>
+
+              <!-- Action 2 -->
+              <button type="button" class="action-item-btn" id="action-download-pdf">
+                <div class="action-left">
+                  <span class="action-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                  </span>
+                  <span class="action-text">Download marksheet (PDF)</span>
+                </div>
+                <span class="action-chevron" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </span>
+              </button>
+
+              <!-- Action 3 -->
+              <button type="button" class="action-item-btn" id="action-grade-analysis">
+                <div class="action-left">
+                  <span class="action-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="20" x2="18" y2="10"></line>
+                      <line x1="12" y1="20" x2="12" y2="4"></line>
+                      <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                  </span>
+                  <span class="action-text">View grade analysis</span>
+                </div>
+                <span class="action-chevron" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </span>
+              </button>
+
+            </div>
+          </div>
+
+        </aside>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Interactive Modal for Quick Actions -->
+  <div class="modal-backdrop" id="modal-backdrop" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Official Marksheet</h3>
+        <button type="button" class="modal-close" id="modal-close-btn" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-content" id="modal-content-area">
+        <!-- Dynamic Content injected via JS -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="modal-btn modal-btn-secondary" id="modal-cancel-btn">Close</button>
+        <button type="button" class="modal-btn modal-btn-primary" id="modal-print-btn">Print / Save PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>

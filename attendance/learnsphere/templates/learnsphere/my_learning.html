@@ -1,0 +1,190 @@
+{% extends 'attendance/base.html' %}
+{% load static %}
+
+{% block title %}My Learning — Cobra Coaching LearnSphere{% endblock %}
+
+{% block body %}
+<main class="page">
+  <div class="container">
+
+    <!-- Page Header with Rubber Stamp -->
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Student Ledger · Academic Progress</span>
+        <h1>My Learning</h1>
+        <p>Monitor your active course enrollments, track completion milestones, and access earned vouchers.</p>
+      </div>
+      <div class="stamp-wrapper">
+        <span class="rubber-stamp">PROGRESS</span>
+      </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="ls-metrics-grid">
+      <div class="ls-stat-card">
+        <span class="ls-stat-label">Enrolled Modules</span>
+        <span class="ls-stat-value mono">{{ metrics.enrolled_courses }}</span>
+        <span class="ls-stat-caption">Active curriculum tracks</span>
+      </div>
+      <div class="ls-stat-card">
+        <span class="ls-stat-label">Completed Courses</span>
+        <span class="ls-stat-value mono" style="color: var(--present);">{{ metrics.completed_courses }}</span>
+        <span class="ls-stat-caption">Fully finished tracks</span>
+      </div>
+      <div class="ls-stat-card">
+        <span class="ls-stat-label">Lectures Completed</span>
+        <span class="ls-stat-value mono">{{ metrics.completed_lessons }}</span>
+        <span class="ls-stat-caption">Completed lecture notes read</span>
+      </div>
+      <div class="ls-stat-card">
+        <span class="ls-stat-label">Unlocked Vouchers</span>
+        <span class="ls-stat-value mono" style="color: var(--gold);">{{ metrics.vouchers_count }}</span>
+        <span class="ls-stat-caption">Earned reward coupons</span>
+      </div>
+    </div>
+
+    <!-- Two-Column Layout -->
+    <div class="ls-detail-layout">
+
+      <!-- Left Column: Enrolled Courses List -->
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; border-bottom: 1px solid var(--rule); padding-bottom: 8px;">
+          <h2 style="font-family: var(--font-display); font-size: 1.45rem; color: var(--navy); margin: 0;">
+            Enrolled Academic Tracks
+          </h2>
+          <a href="{% url 'ls_catalog' %}" style="font-family: var(--font-mono); font-size: 0.84rem; color: var(--navy); text-decoration: none; font-weight: 600;">
+            + Explore Catalog
+          </a>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          {% for course, stats in items %}
+            <div class="card" style="padding: 24px 28px; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; box-shadow: var(--shadow-card); transition: transform 0.15s ease;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; gap: 16px; flex-wrap: wrap;">
+                <div>
+                  <span class="ls-category-tag" style="margin-bottom: 8px; display: inline-block;">{{ course.category }}</span>
+                  <h3 style="font-family: var(--font-display); font-size: 1.35rem; color: var(--navy); margin: 0 0 6px 0;">
+                    <a href="{% url 'ls_course_detail' course.id %}" style="text-decoration: none; color: inherit;">
+                      {{ course.title }}
+                    </a>
+                  </h3>
+                  <div style="font-size: 0.88rem; color: var(--ink-soft);">
+                    Instructor: <strong>Prof. {{ course.instructor.get_full_name|default:course.instructor.username }}</strong>
+                  </div>
+                </div>
+
+                <div style="text-align: right;">
+                <div class="mono" {% if stats %}style="font-size: 1.4rem; font-weight: 700; color: {% if stats.2 == 100 %}var(--present){% else %}var(--navy){% endif %};"{% endif %}>
+                    {{ stats.2 }}%
+                  </div>
+                  <div style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-soft);">
+                    {{ stats.1 }} / {{ stats.0 }} lectures
+                  </div>
+                </div>
+              </div>
+
+              <!-- Progress bar -->
+              <div class="ls-progress-track" style="margin-bottom: 16px;">
+                <div class="ls-progress-fill" {% if stats %}style="width: {{ stats.2 }}%; background: {% if stats.2 == 100 %}var(--present){% else %}var(--gold){% endif %};"{% endif %}></div>
+              </div>
+
+              <!-- Action Bar -->
+              <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--rule); padding-top: 14px;">
+                <span style="font-size: 0.84rem; color: var(--ink-soft);">
+                  {% if stats.2 == 100 %}
+                    <span style="color: var(--present); font-weight: 600;">✓ Course Completed</span>
+                  {% else %}
+                    <span>{{ stats.0|add:"-"|add:stats.1 }} lectures remaining</span>
+                  {% endif %}
+                </span>
+
+                <a href="{% url 'ls_course_detail' course.id %}" class="btn btn-primary btn-sm">
+                  {% if stats.2 == 100 %}Review Lectures{% else %}Resume Learning &rarr;{% endif %}
+                </a>
+              </div>
+            </div>
+          {% empty %}
+            <div class="card panel" style="padding: 48px; text-align: center; border: 1px dashed var(--rule); background: var(--card);">
+              <h3 style="color: var(--navy); margin-bottom: 8px;">No Enrollments Found</h3>
+              <p style="color: var(--ink-soft); max-width: 480px; margin: 0 auto 20px;">
+                You are not currently enrolled in any courses. Browse the course catalog to enroll in academic tracks.
+              </p>
+              <a href="{% url 'ls_catalog' %}" class="btn btn-primary btn-sm">Browse Course Catalog</a>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Right Column: Rewards Vault -->
+      <aside class="ls-sidebar-sticky">
+        <div class="ls-sidebar-panel">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--rule); padding-bottom: 10px;">
+            <h3 style="font-family: var(--font-display); font-size: 1.25rem; color: var(--navy); margin: 0;">
+              Earned Vouchers
+            </h3>
+            <span class="rubber-stamp" style="font-size: 0.72rem; padding: 2px 8px; transform: rotate(3deg);">REWARDS</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            {% for voucher in vouchers %}
+              <div class="ls-voucher-card">
+                <div class="ls-voucher-header">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="8" r="7"></circle>
+                    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+                  </svg>
+                  Course Achievement
+                </div>
+                <div class="ls-voucher-discount">{{ voucher.discount }} Off</div>
+                <div class="ls-voucher-brand">Partner: <strong>{{ voucher.brand }}</strong></div>
+                <div style="font-size: 0.8rem; color: var(--ink-soft); margin-bottom: 10px;">
+                  For: <em>{{ voucher.course.title|truncatechars:32 }}</em>
+                </div>
+
+                <div class="ls-voucher-code-box" onclick="copyVoucherCode('{{ voucher.code }}')" title="Click to copy promo code">
+                  <span>{{ voucher.code }}</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                </div>
+                <div class="ls-copy-hint">Click code to copy</div>
+              </div>
+            {% empty %}
+              <div class="ls-voucher-locked">
+                <div class="ls-voucher-locked-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="8" width="18" height="14" rx="2" ry="2"></rect>
+                    <path d="M12 5a3 3 0 1 0-3 3"></path>
+                    <path d="M15 8a3 3 0 1 0-3-3"></path>
+                    <path d="M12 8v14"></path>
+                    <path d="M3 13h18"></path>
+                  </svg>
+                </div>
+                <strong style="color: var(--navy); display: block; margin-bottom: 4px; font-size: 0.92rem;">
+                  No Vouchers Earned Yet
+                </strong>
+                <p style="font-size: 0.82rem; margin-bottom: 0;">
+                  Complete 100% of the lectures in any enrolled track to unlock academic reward coupons!
+                </p>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </aside>
+
+    </div>
+
+  </div>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function copyVoucherCode(code) {
+  navigator.clipboard.writeText(code).then(function() {
+    alert('Voucher code copied to clipboard: ' + code);
+  });
+}
+</script>
+{% endblock %}
