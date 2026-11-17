@@ -1,5 +1,6 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from attendance.models import Course
 
@@ -48,7 +49,6 @@ class Subject(models.Model):
 class GradeRecord(models.Model):
     """A student's marks and final grade in a subject for a given semester."""
     class GradeChoices(models.TextChoices):
-        O = 'O', 'O (Outstanding)'
         A_PLUS = 'A+', 'A+ (Excellent)'
         A = 'A', 'A (Very Good)'
         B_PLUS = 'B+', 'B+ (Good)'
@@ -66,11 +66,11 @@ class GradeRecord(models.Model):
     semester = models.ForeignKey(Semester, on_delete=models.PROTECT, related_name='grade_records')
     subject = models.ForeignKey(Subject, on_delete=models.PROTECT, related_name='grade_records')
     
-    internal_marks = models.DecimalField(max_digits=5, decimal_places=1, default=0)
-    external_marks = models.DecimalField(max_digits=5, decimal_places=1, default=0)
-    total_marks = models.DecimalField(max_digits=5, decimal_places=1, default=0)
-    grade = models.CharField(max_length=5, choices=GradeChoices.choices, default='A')
-    grade_point = models.DecimalField(max_digits=4, decimal_places=1, default=9.0)
+    internal_marks = models.DecimalField(max_digits=5, decimal_places=1, default=Decimal('0.0'))
+    external_marks = models.DecimalField(max_digits=5, decimal_places=1, default=Decimal('0.0'))
+    total_marks = models.DecimalField(max_digits=5, decimal_places=1, default=Decimal('0.0'))
+    grade = models.CharField(max_length=5, choices=GradeChoices.choices, default='F')
+    grade_point = models.DecimalField(max_digits=4, decimal_places=1, default=Decimal('0.0'))
 
     class Meta:
         constraints = [
@@ -83,26 +83,84 @@ class GradeRecord(models.Model):
 
     @staticmethod
     def calculate_grade_and_point(total):
-        if total >= 90:
+        """
+        Calculates letter grade and grade point using the institutional 10-point grading scale:
+        - 90.0 to 100.0: A+ (10.0 grade points)
+        - 80.0 to 89.9:  A  (9.0 grade points)
+        - 70.0 to 79.9:  B+ (8.0 grade points)
+        - 60.0 to 69.9:  B  (7.0 grade points)
+        - 50.0 to 59.9:  C  (6.0 grade points)
+        - 40.0 to 49.9:  P  (5.0 grade points)
+        - 0.0 to 39.9:   F  (0.0 grade points, Fail)
+        Note: This is Cobra Coaching's documented institutional scale.
+        """
+        try:
+            total_dec = Decimal(str(total))
+        except (InvalidOperation, TypeError, ValueError):
+            return 'F', Decimal('0.0')
+
+        if total_dec >= Decimal('90.0'):
             return 'A+', Decimal('10.0')
-        elif total >= 80:
+        elif total_dec >= Decimal('80.0'):
             return 'A', Decimal('9.0')
-        elif total >= 70:
+        elif total_dec >= Decimal('70.0'):
             return 'B+', Decimal('8.0')
-        elif total >= 60:
+        elif total_dec >= Decimal('60.0'):
             return 'B', Decimal('7.0')
-        elif total >= 50:
+        elif total_dec >= Decimal('50.0'):
             return 'C', Decimal('6.0')
-        elif total >= 40:
+        elif total_dec >= Decimal('40.0'):
             return 'P', Decimal('5.0')
         else:
             return 'F', Decimal('0.0')
 
+    def clean(self):
+        super().clean()
+        errors = {}
+
+        # Validate internal marks range: 0.0 to 20.0
+        try:
+            internal_val = Decimal(str(self.internal_marks))
+            if internal_val.is_nan() or internal_val.is_infinite():
+                errors['internal_marks'] = "Internal marks must be a valid finite number."
+            elif internal_val < Decimal('0.0') or internal_val > Decimal('20.0'):
+                errors['internal_marks'] = "Internal marks must be between 0.0 and 20.0."
+            elif internal_val.as_tuple().exponent < -1:
+                errors['internal_marks'] = "Internal marks cannot exceed 1 decimal place of precision."
+        except (InvalidOperation, TypeError, ValueError):
+            errors['internal_marks'] = "Invalid numeric format for internal marks."
+
+        # Validate external marks range: 0.0 to 80.0
+        try:
+            external_val = Decimal(str(self.external_marks))
+            if external_val.is_nan() or external_val.is_infinite():
+                errors['external_marks'] = "External marks must be a valid finite number."
+            elif external_val < Decimal('0.0') or external_val > Decimal('80.0'):
+                errors['external_marks'] = "External marks must be between 0.0 and 80.0."
+            elif external_val.as_tuple().exponent < -1:
+                errors['external_marks'] = "External marks cannot exceed 1 decimal place of precision."
+        except (InvalidOperation, TypeError, ValueError):
+            errors['external_marks'] = "Invalid numeric format for external marks."
+
+        if not errors:
+            tot = internal_val + external_val
+            if tot < Decimal('0.0') or tot > Decimal('100.0'):
+                errors['total_marks'] = "Total marks must be between 0.0 and 100.0."
+
+        if errors:
+            raise ValidationError(errors)
+
     def save(self, *args, **kwargs):
-        self.total_marks = Decimal(str(self.internal_marks)) + Decimal(str(self.external_marks))
-        # If grade not explicitly overridden, compute standard letter and point
-        if not self.grade:
-            self.grade, self.grade_point = self.calculate_grade_and_point(self.total_marks)
+        # Calculate total marks and derive grade and grade point
+        try:
+            internal_val = Decimal(str(self.internal_marks))
+            external_val = Decimal(str(self.external_marks))
+        except (InvalidOperation, TypeError, ValueError):
+            internal_val = Decimal('0.0')
+            external_val = Decimal('0.0')
+
+        self.total_marks = internal_val + external_val
+        self.grade, self.grade_point = self.calculate_grade_and_point(self.total_marks)
         super().save(*args, **kwargs)
 
     def __str__(self):

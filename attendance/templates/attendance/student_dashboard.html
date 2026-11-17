@@ -2,8 +2,6 @@
 
 {% block title %}My Attendance — Cobra Coaching{% endblock %}
 
-
-
 {% block body %}
 <main class="page">
   <div class="container">
@@ -29,6 +27,18 @@
         </span>
       {% endif %}
     </div>
+
+    <!-- Quick Action / Notification Strip -->
+    {% if notifications %}
+      <div class="card" style="margin-bottom: 20px; padding: 14px 20px; background: var(--paper-2, #FAF8F3); border: 1px solid var(--rule); border-radius: 4px;">
+        <span style="font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700; color: var(--navy); text-transform: uppercase;">Latest Notifications</span>
+        <ul style="margin: 6px 0 0 0; padding-left: 20px; font-size: 0.88rem; color: var(--ink);">
+          {% for note in notifications %}
+            <li style="margin-bottom: 4px;">{{ note.message }} <span style="font-size:0.75rem; color:var(--ink-soft); font-family:var(--font-mono);">({{ note.created_at|date:"d M, H:i" }})</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
 
     <div class="stat-grid">
       <div class="card stat-card">
@@ -56,19 +66,69 @@
       </div>
     </div>
 
-    <!-- Academic Ledger Quick Banner -->
-    <div class="card" style="margin-bottom: 24px; padding: 16px 22px; background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--gold); display: flex; align-items: center; justify-content: space-between; border-radius: 4px;">
+    <!-- Quick Navigation Banner -->
+    <div class="card" style="margin-bottom: 24px; padding: 14px 20px; background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--gold); display: flex; align-items: center; justify-content: space-between; border-radius: 4px; flex-wrap: wrap; gap: 12px;">
       <div style="display: flex; align-items: center; gap: 14px;">
-        <span style="font-family: var(--font-mono); font-weight: 700; color: var(--gold); font-size: 1.1rem; border: 1.5px solid var(--gold); padding: 2px 8px; border-radius: 4px;">SEM</span>
+        <span style="font-family: var(--font-mono); font-weight: 700; color: var(--gold); font-size: 1.05rem; border: 1.5px solid var(--gold); padding: 2px 8px; border-radius: 4px;">CORRECTIONS</span>
         <div>
-          <strong style="color: var(--ink); font-size: 0.96rem;">Academic Grade Ledger</strong>
-          <div style="color: var(--ink-soft); font-size: 0.85rem;">View subject-wise grades, marksheet verification, and semester SGPA cards.</div>
+          <strong style="color: var(--ink); font-size: 0.95rem;">Attendance Corrections &amp; Review Tracking</strong>
+          <div style="color: var(--ink-soft); font-size: 0.84rem;">Notice an incorrect mark or missing session? Attendance corrections can be requested only for today's classes.</div>
         </div>
       </div>
-      <a href="{% url 'student_grades' %}" class="btn btn-sm btn-primary" style="text-decoration: none;">View Your Grades &rarr;</a>
+      <a href="{% url 'my_correction_requests' %}" class="btn btn-sm btn-ghost" style="text-decoration: none; padding: 6px 12px; font-size: 0.82rem;">My Requests History &rarr;</a>
     </div>
 
+    <!-- Unmarked / Missing Published Sessions Alert Section -->
+    {% if missing_sessions %}
+      <div class="card panel" style="margin-bottom: 24px; border-left: 4px solid var(--absent);">
+        <div class="panel-head">
+          <h3 style="color: var(--absent);">Unmarked / Missing Attendance Entries</h3>
+          <span class="summary mono" style="color: var(--absent);">{{ missing_sessions|length }} published class{{ missing_sessions|pluralize:"es" }} with entry missing</span>
+        </div>
+        <p style="margin: 0 0 14px 0; font-size: 0.88rem; color: var(--ink-soft);">
+          The following lecture sessions were held and published for courses you are enrolled in, but no attendance record was entered for your account. You may request an entry if you were present.
+        </p>
+        <table class="register">
+          <thead>
+            <tr>
+              <th style="width:100px;">Course</th>
+              <th>Session Details</th>
+              <th style="width:130px;">Date</th>
+              <th style="width:140px;">Status</th>
+              <th style="width:160px; text-align:right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in missing_sessions %}
+              <tr>
+                <td class="roll-no">{{ s.course.code }}</td>
+                <td>
+                  <strong>{{ s.course.name }}</strong>
+                  <div class="meta">{{ s.session_identifier }} · Instructor: Prof. {{ s.course.faculty.get_full_name|default:s.course.faculty.username }}</div>
+                </td>
+                <td class="mono">{{ s.date|date:"D, j M Y" }}</td>
+                <td><span class="stamp stamp-absent" style="background:#FDE8E8; color:#9B1C1C; border-color:#F8B4B4;">Entry missing</span></td>
+                <td style="text-align:right;">
+                  {% if s.pk in active_requests %}
+                    <span class="stamp stamp-late" style="font-size:0.75rem;">Request Pending</span>
+                  {% elif s.date == today %}
+                    <button type="button" class="btn btn-sm btn-primary" style="padding: 4px 10px; font-size: 0.78rem;"
+                            onclick="openCorrectionModal('{{ s.pk }}', '{{ s.course.code|escapejs }}', '{{ s.session_identifier|escapejs }}', '{{ s.date|date:'Y-m-d' }}', 'Entry missing', '{{ s.course.faculty.get_full_name|default:s.course.faculty.username|escapejs }}')">
+                      Request entry
+                    </button>
+                  {% else %}
+                    <span class="meta" style="font-size: 0.75rem; color: var(--ink-soft);" title="Correction requests are permitted only on the day of the class session">Window closed</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+
     <div class="grid-2">
+      <!-- Course by course table -->
       <div class="card panel">
         <div class="panel-head">
           <h3>Course by course</h3>
@@ -114,18 +174,36 @@
         </table>
       </div>
 
+      <!-- Recent Entries List with Correction Buttons -->
       <div class="card panel">
         <div class="panel-head">
-          <h3>Recent entries</h3>
+          <h3>Recent attendance entries</h3>
         </div>
         <ul class="activity-list">
           {% for record in history %}
-          <li>
-            <span>
-              <span class="who">{{ record.course.code }} · {{ record.course.name }}</span>
-              <span class="meta">{{ record.date|date:"D j M Y" }}</span>
-            </span>
-            <span class="stamp {% if record.status == 'P' %}stamp-present{% elif record.status == 'L' %}stamp-late{% else %}stamp-absent{% endif %}">{{ record.get_status_display }}</span>
+          <li style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--rule);">
+            <div style="flex: 1; padding-right: 12px;">
+              <span class="who" style="display: block; font-weight: 600;">{{ record.course.code }} · {{ record.course.name }}</span>
+              <span class="meta" style="font-size: 0.82rem; color: var(--ink-soft);">
+                {{ record.date|date:"D j M Y" }} · {{ record.session.session_identifier|default:"Lecture" }}
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="stamp {% if record.status == 'P' %}stamp-present{% elif record.status == 'L' %}stamp-late{% else %}stamp-absent{% endif %}">
+                {{ record.get_status_display }}
+              </span>
+              {% if record.session.pk in active_requests %}
+                <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--gold); font-weight: 700; background: #FAF3E3; padding: 2px 6px; border-radius: 3px; border: 1px solid #EADBBA;">
+                  Pending
+                </span>
+              {% elif record.date == today %}
+                <button type="button" class="btn btn-sm btn-ghost" style="padding: 3px 8px; font-size: 0.75rem;"
+                        title="Request attendance correction for this session"
+                        onclick="openCorrectionModal('{{ record.session.pk }}', '{{ record.course.code|escapejs }}', '{{ record.session.session_identifier|default:'Session 1'|escapejs }}', '{{ record.date|date:'Y-m-d' }}', '{{ record.get_status_display|escapejs }}', '{{ record.course.faculty.get_full_name|default:record.course.faculty.username|escapejs }}')">
+                  Request correction
+                </button>
+              {% endif %}
+            </div>
           </li>
           {% empty %}
           <li>
@@ -141,4 +219,91 @@
 
   </div>
 </main>
+
+<!-- Modal: Correction Request Form -->
+<div class="modal-backdrop" id="correction-modal" aria-hidden="true" style="box-sizing: border-box;">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title" style="max-width: 500px; width: 100%; background: #FFFFFF; box-sizing: border-box; overflow: hidden; border-radius: 6px; border: 1px solid var(--rule);">
+    <div class="modal-header" style="background: var(--navy); color: #FFFFFF; padding: 14px 20px; border-bottom: 2px solid var(--gold); display: flex; align-items: center; justify-content: space-between; box-sizing: border-box;">
+      <h3 class="modal-title" id="modal-title" style="margin: 0; font-family: var(--font-display); font-size: 1.15rem; color: #FFFFFF;">Request Attendance Correction</h3>
+      <button type="button" class="modal-close" onclick="closeCorrectionModal()" style="background: none; border: none; color: #FFFFFF; font-size: 24px; cursor: pointer;">&times;</button>
+    </div>
+    <form method="post" action="{% url 'request_correction' %}" id="correction-form" style="margin: 0; display: flex; flex-direction: column; width: 100%; box-sizing: border-box;">
+      {% csrf_token %}
+      <input type="hidden" name="session_id" id="modal-session-id" value="">
+
+      <div class="modal-body" style="background: #FFFFFF; padding: 18px 20px; color: var(--ink); box-sizing: border-box; width: 100%; max-height: calc(85vh - 130px); overflow-y: auto;">
+        <div style="background: var(--paper-2, #FAF8F3); border: 1px solid var(--rule); padding: 12px 14px; border-radius: 4px; margin-bottom: 16px; font-size: 0.88rem; box-sizing: border-box;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="color: var(--ink-soft);">Subject:</span>
+            <strong id="modal-course-code">—</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="color: var(--ink-soft);">Date &amp; Period:</span>
+            <span id="modal-session-date" class="mono">—</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="color: var(--ink-soft);">Currently Recorded:</span>
+            <span id="modal-current-status" style="font-weight: 600;">—</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--ink-soft);">Responsible Teacher:</span>
+            <span id="modal-teacher-name">—</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 14px; box-sizing: border-box; width: 100%;">
+          <label for="req-status" style="display: block; font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; color: var(--navy); margin-bottom: 6px;">
+            Requested Status:
+          </label>
+          <select name="requested_status" id="req-status" class="custom-select" style="width: 100%; max-width: 100%; box-sizing: border-box; padding: 7px 10px; display: block;" required>
+            <option value="P">Present (Attended)</option>
+            <option value="L">Late (Arrived Late)</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 14px; box-sizing: border-box; width: 100%;">
+          <label for="req-reason" style="display: block; font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; color: var(--navy); margin-bottom: 6px;">
+            Reason for Correction Request:
+          </label>
+          <textarea name="reason" id="req-reason" rows="3" required placeholder="Explain clearly why this correction is warranted (e.g. was present in 2nd row, signed register, lab arrival delay)..."
+                    style="width: 100%; max-width: 100%; box-sizing: border-box; padding: 8px 10px; font-family: var(--font-body); font-size: 0.9rem; border: 1px solid var(--rule); border-radius: 4px; resize: vertical; display: block;"></textarea>
+        </div>
+
+        <p style="margin: 0; font-size: 0.78rem; color: var(--ink-soft); line-height: 1.4;">
+          <strong>Request Window Policy:</strong> Attendance corrections can be requested only for today's classes. A notification email will be batched and delivered to your instructor.
+        </p>
+      </div>
+
+      <div class="modal-footer" style="background: var(--paper-2, #FAF8F3); padding: 12px 20px; border-top: 1px solid var(--rule); display: flex; align-items: center; justify-content: flex-end; gap: 10px; box-sizing: border-box;">
+        <button type="button" class="btn btn-ghost" onclick="closeCorrectionModal()" style="padding: 6px 14px; font-size: 0.84rem;">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="padding: 6px 16px; font-size: 0.84rem;">Submit Correction Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openCorrectionModal(sessionId, courseCode, sessionName, sessionDate, currentStatus, teacherName) {
+  document.getElementById('modal-session-id').value = sessionId;
+  document.getElementById('modal-course-code').textContent = courseCode;
+  document.getElementById('modal-session-date').textContent = sessionDate + ' (' + sessionName + ')';
+  document.getElementById('modal-current-status').textContent = currentStatus;
+  document.getElementById('modal-teacher-name').textContent = 'Prof. ' + teacherName;
+  document.getElementById('req-reason').value = '';
+  
+  const modal = document.getElementById('correction-modal');
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeCorrectionModal() {
+  const modal = document.getElementById('correction-modal');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeCorrectionModal();
+});
+</script>
 {% endblock %}

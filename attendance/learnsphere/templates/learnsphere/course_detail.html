@@ -298,6 +298,7 @@
 
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 <script>
 window.MathJax = {
   tex: {
@@ -305,6 +306,37 @@ window.MathJax = {
     displayMath: [['$$', '$$'], ['\\[', '\\]']]
   }
 };
+
+function sanitizeMarkdownHtml(dirty) {
+  if (window.DOMPurify && typeof DOMPurify.sanitize === 'function') {
+    return DOMPurify.sanitize(dirty, {
+      ALLOWED_TAGS: [
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr',
+        'strong', 'b', 'em', 'i', 'u', 's', 'strike', 'del',
+        'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
+        'table', 'thead', 'tbody', 'tr', 'th', 'td',
+        'span', 'div', 'a', 'img'
+      ],
+      ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'style', 'id', 'target', 'rel'],
+      FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
+      FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onchange', 'onsubmit']
+    });
+  }
+  // Robust browser-native DOM sanitizer fallback
+  const temp = document.createElement('template');
+  temp.innerHTML = dirty;
+  const dangerous = temp.content.querySelectorAll('script, iframe, object, embed, form, input, button');
+  dangerous.forEach(node => node.remove());
+  const allNodes = temp.content.querySelectorAll('*');
+  for (let el of allNodes) {
+    for (let attr of Array.from(el.attributes)) {
+      if (attr.name.toLowerCase().startsWith('on') || attr.value.toLowerCase().includes('javascript:')) {
+        el.removeAttribute(attr.name);
+      }
+    }
+  }
+  return temp.innerHTML;
+}
 </script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script>
@@ -313,7 +345,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const rawMarkdown = "{{ active_lesson.content|escapejs }}";
     const contentDiv = document.getElementById('md-content');
     if (contentDiv) {
-      contentDiv.innerHTML = marked.parse(rawMarkdown);
+      const dirtyHtml = marked.parse(rawMarkdown);
+      contentDiv.innerHTML = sanitizeMarkdownHtml(dirtyHtml);
       if (window.MathJax && MathJax.typesetPromise) {
         MathJax.typesetPromise([contentDiv]);
       }

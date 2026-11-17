@@ -1,0 +1,25 @@
+Cobra Coaching — Attendance Correction Approved
+=================================================
+
+Dear {{ student.get_full_name|default:student.username }},
+
+Your attendance correction request has been APPROVED by your course instructor.
+
+Correction Details:
+-------------------
+Student Name:        {{ student.get_full_name|default:student.username }}
+Roll Number:         {{ student.roll_number|default:student.username }}
+Subject:             {{ course.code }} — {{ course.name }}
+Class Date & Session: {{ session.date|date:"d M Y" }} ({{ session.session_identifier }})
+Previous Status:     {{ previous_status }}
+Corrected Status:    {{ corrected_status }}
+
+Your attendance register and course percentage have been updated.
+
+You can view your updated attendance records here:
+{{ attendance_url }}
+
+-- 
+Cobra Coaching Platform
+Department of Computer Science
+

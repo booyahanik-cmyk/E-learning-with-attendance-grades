@@ -2,12 +2,19 @@ import csv
 import io
 from datetime import timedelta
 
+from django.core import mail
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from . import stats
-from .models import Attendance, Course, User
+from .models import (
+    Attendance, Course, User,
+    ClassSession, AttendanceCorrectionBatch, AttendanceCorrectionRequest,
+    AttendanceAuditLog, StudentNotification, AttendanceCorrectionWindowExtension
+)
+from .notifications import create_token
 
 PASSWORD = 'RegisterBook#2026'
 
@@ -552,3 +559,410 @@ class DashboardTests(CollegeData):
         self.client.force_login(admin)
         response = self.client.get(reverse('attendance_register'))
         self.assertEqual([c.code for c in response.context['courses']], ['CS110', 'CS301'])
+
+
+class AttendanceCorrectionSystemTests(CollegeData):
+    """Part 2 tests: ClassSession management, Correction Requests, Email Notifications,
+    Expiring Tokens, Review Panel, Concurrency Protection, and Audit Logging."""
+
+    def setUp(self):
+        super().setUp()
+        self.faculty.email = 'faculty@college.edu'
+        self.faculty.save()
+        self.session1 = ClassSession.objects.create(
+            course=self.course,
+            date=self.today,
+            session_identifier='Session 1',
+            is_published=True,
+        )
+
+    def test_multi_sessions_on_same_date_marking(self):
+        # Create a second session on the same date for CS301
+        self.client.force_login(self.faculty)
+        response = self.client.post(reverse('attendance_register'), {
+            'action': 'add_session',
+            'course': self.course.pk,
+            'date': self.today.isoformat(),
+            'new_session_identifier': 'Session 2 (Lab)',
+        })
+        self.assertEqual(response.status_code, 302)
+        sess2 = ClassSession.objects.get(course=self.course, date=self.today, session_identifier='Session 2 (Lab)')
+
+        # Mark Alice P in Session 1
+        self.client.post(reverse('attendance_register'), {
+            'course': self.course.pk,
+            'date': self.today.isoformat(),
+            'session': self.session1.pk,
+            f's{self.alice.pk}': 'P',
+            f's{self.bob.pk}': 'P',
+        })
+
+        # Mark Alice A in Session 2
+        self.client.post(reverse('attendance_register'), {
+            'course': self.course.pk,
+            'date': self.today.isoformat(),
+            'session': sess2.pk,
+            f's{self.alice.pk}': 'A',
+            f's{self.bob.pk}': 'L',
+        })
+
+        # Check records
+        rec1 = Attendance.objects.get(student=self.alice, session=self.session1)
+        rec2 = Attendance.objects.get(student=self.alice, session=sess2)
+        self.assertEqual(rec1.status, Attendance.Status.PRESENT)
+        self.assertEqual(rec2.status, Attendance.Status.ABSENT)
+
+        # Check total attendance count for Alice in CS301
+        self.assertEqual(self.alice.attendance_records.filter(course=self.course, date=self.today).count(), 2)
+
+    def test_student_correction_request_submission_and_validation(self):
+        # Alice is marked Absent in session1
+        Attendance.objects.create(
+            student=self.alice,
+            course=self.course,
+            session=self.session1,
+            date=self.today,
+            status=Attendance.Status.ABSENT,
+            marked_by=self.faculty,
+        )
+
+        self.client.force_login(self.alice)
+
+        # Missing reason fails
+        resp = self.client.post(reverse('request_correction'), {
+            'session_id': self.session1.pk,
+            'requested_status': 'P',
+            'reason': '',
+        }, follow=True)
+        self.assertContains(resp, 'A reason explaining the correction request is required.')
+        self.assertFalse(AttendanceCorrectionRequest.objects.exists())
+
+        # Invalid status fails
+        resp = self.client.post(reverse('request_correction'), {
+            'session_id': self.session1.pk,
+            'requested_status': 'A',
+            'reason': 'Mark me absent',
+        }, follow=True)
+        self.assertContains(resp, 'Requested status must be Present or Late.')
+        self.assertFalse(AttendanceCorrectionRequest.objects.exists())
+
+        # Valid submission succeeds
+        resp = self.client.post(reverse('request_correction'), {
+            'session_id': self.session1.pk,
+            'requested_status': 'P',
+            'reason': 'I was in the front row and answered questions.',
+        }, follow=True)
+        self.assertContains(resp, 'Correction request submitted')
+        req = AttendanceCorrectionRequest.objects.get(student=self.alice, session=self.session1)
+        self.assertEqual(req.original_status, Attendance.Status.ABSENT)
+        self.assertEqual(req.requested_status, Attendance.Status.PRESENT)
+        self.assertEqual(req.status, AttendanceCorrectionRequest.Status.PENDING)
+
+    def test_request_for_session_outside_7_days_rejected_unless_extended(self):
+        old_date = self.today - timedelta(days=10)
+        old_session = ClassSession.objects.create(
+            course=self.course,
+            date=old_date,
+            session_identifier='Old Lecture',
+            is_published=True,
+        )
+        Attendance.objects.create(
+            student=self.alice,
+            course=self.course,
+            session=old_session,
+            date=old_date,
+            status=Attendance.Status.ABSENT,
+            marked_by=self.faculty
+        )
+
+        self.client.force_login(self.alice)
+        resp = self.client.post(reverse('request_correction'), {
+            'session_id': old_session.pk,
+            'requested_status': 'P',
+            'reason': 'Old class attendance missing',
+        }, follow=True)
+        self.assertContains(resp, 'The 7-day correction request window')
+        self.assertFalse(AttendanceCorrectionRequest.objects.filter(session=old_session).exists())
+
+        # Admin provides extension
+        admin = User.objects.create_superuser(username='dean2', password=PASSWORD, role=User.Role.ADMIN)
+        AttendanceCorrectionWindowExtension.objects.create(
+            student=self.alice,
+            session=old_session,
+            course=self.course,
+            extended_until=timezone.now() + timedelta(days=3),
+            created_by=admin,
+            reason='Medical certificate provided'
+        )
+
+        # Now student submits successfully
+        resp = self.client.post(reverse('request_correction'), {
+            'session_id': old_session.pk,
+            'requested_status': 'P',
+            'reason': 'Old class attendance missing',
+        }, follow=True)
+        self.assertContains(resp, 'Correction request submitted')
+        self.assertTrue(AttendanceCorrectionRequest.objects.filter(session=old_session).exists())
+
+    def test_duplicate_pending_request_and_rate_limiting(self):
+        self.client.force_login(self.alice)
+        # Create first request
+        self.client.post(reverse('request_correction'), {
+            'session_id': self.session1.pk,
+            'requested_status': 'P',
+            'reason': 'First request',
+        })
+        self.assertEqual(AttendanceCorrectionRequest.objects.count(), 1)
+
+        # Second request for same session is rejected
+        resp = self.client.post(reverse('request_correction'), {
+            'session_id': self.session1.pk,
+            'requested_status': 'P',
+            'reason': 'Duplicate request',
+        }, follow=True)
+        self.assertContains(resp, 'You already have a pending correction request')
+        self.assertEqual(AttendanceCorrectionRequest.objects.count(), 1)
+
+    def test_student_can_cancel_pending_request(self):
+        req = AttendanceCorrectionRequest.objects.create(
+            student=self.alice,
+            session=self.session1,
+            course=self.course,
+            teacher=self.course.faculty,
+            original_status=Attendance.Status.ABSENT,
+            requested_status=Attendance.Status.PRESENT,
+            reason='Made a mistake',
+            status=AttendanceCorrectionRequest.Status.PENDING
+        )
+        self.client.force_login(self.alice)
+        resp = self.client.post(reverse('cancel_correction_request', args=[req.pk]), follow=True)
+        self.assertContains(resp, 'cancelled')
+        req.refresh_from_db()
+        self.assertEqual(req.status, AttendanceCorrectionRequest.Status.CANCELLED)
+
+    def test_grouped_email_notification_batching_and_command(self):
+        req1 = AttendanceCorrectionRequest.objects.create(
+            student=self.alice,
+            session=self.session1,
+            course=self.course,
+            teacher=self.course.faculty,
+            original_status=Attendance.Status.ABSENT,
+            requested_status=Attendance.Status.PRESENT,
+            reason='Reason 1',
+            status=AttendanceCorrectionRequest.Status.PENDING
+        )
+        req2 = AttendanceCorrectionRequest.objects.create(
+            student=self.bob,
+            session=self.session1,
+            course=self.course,
+            teacher=self.course.faculty,
+            original_status=Attendance.Status.ABSENT,
+            requested_status=Attendance.Status.PRESENT,
+            reason='Reason 2',
+            status=AttendanceCorrectionRequest.Status.PENDING
+        )
+
+        mail.outbox.clear()
+        with self.captureOnCommitCallbacks(execute=True):
+            call_command('process_correction_notifications', now=True)
+
+        # A batch was created and email sent
+        batch = AttendanceCorrectionBatch.objects.get(teacher=self.faculty)
+        self.assertEqual(batch.status, 'sent')
+        self.assertEqual(batch.requests.count(), 2)
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertIn('2 students requested attendance corrections', email.subject)
+        self.assertIn(self.faculty.email, email.to)
+        self.assertIn('/attendance/review/', email.body)
+
+    def test_token_access_security_and_get_safety(self):
+        raw_token, token_hash = create_token()
+        batch = AttendanceCorrectionBatch.objects.create(
+            teacher=self.faculty,
+            token_hash=token_hash,
+            token_expires_at=timezone.now() + timedelta(hours=48),
+            status='sent'
+        )
+        req = AttendanceCorrectionRequest.objects.create(
+            student=self.alice,
+            session=self.session1,
+            course=self.course,
+            teacher=self.course.faculty,
+            original_status=Attendance.Status.ABSENT,
+            requested_status=Attendance.Status.PRESENT,
+            reason='Test reason',
+            status=AttendanceCorrectionRequest.Status.PENDING,
+            batch=batch
+        )
+
+        # GET request with token renders review panel safely without altering records
+        url = reverse('review_corrections') + f'?batch={batch.batch_id}&token={raw_token}'
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Restricted Email Access')
+        self.assertContains(resp, self.alice.get_full_name())
+
+        # Expired token redirects to error notice
+        batch.token_expires_at = timezone.now() - timedelta(hours=1)
+        batch.save()
+        resp = self.client.get(url, follow=True)
+        self.assertContains(resp, 'Access Link Notice')
+        self.assertContains(resp, 'expired')
+
+        # Revoked batch redirects to error notice
+        batch.token_expires_at = timezone.now() + timedelta(days=2)
+        batch.is_revoked = True
+        batch.save()
+        resp = self.client.get(url, follow=True)
+        self.assertContains(resp, 'Access Link Notice')
+        self.assertContains(resp, 'revoked')
+
+        # Bad token redirects to error notice
+        batch.is_revoked = False
+        batch.save()
+        bad_url = reverse('review_corrections') + f'?batch={batch.batch_id}&token=invalidsecrettoken'
+        resp = self.client.get(bad_url, follow=True)
+        self.assertContains(resp, 'Access Link Notice')
+        self.assertContains(resp, 'Invalid access token')
+
+    def test_review_panel_approve_request(self):
+        att = Attendance.objects.create(
+            student=self.alice,
+            course=self.course,
+            session=self.session1,
+            date=self.today,
+            status=Attendance.Status.ABSENT,
+            marked_by=self.faculty
+        )
+        req = AttendanceCorrectionRequest.objects.create(
+            student=self.alice,
+            session=self.session1,
+            course=self.course,
+            teacher=self.course.faculty,
+            original_status=Attendance.Status.ABSENT,
+            requested_status=Attendance.Status.PRESENT,
+            reason='Front row',
+            status=AttendanceCorrectionRequest.Status.PENDING
+        )
+
+        self.client.force_login(self.faculty)
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.client.post(reverse('approve_correction_request', args=[req.pk]), follow=True)
+        self.assertContains(resp, 'Approved: Updated attendance')
+
+        req.refresh_from_db()
+        self.assertEqual(req.status, AttendanceCorrectionRequest.Status.APPROVED)
+
+        # Check attendance record was updated
+        att.refresh_from_db()
+        self.assertEqual(att.status, Attendance.Status.PRESENT)
+
+        # Check audit log
+        audit = AttendanceAuditLog.objects.get(attendance=att)
+        self.assertEqual(audit.previous_status, Attendance.Status.ABSENT)
+        self.assertEqual(audit.new_status, Attendance.Status.PRESENT)
+        self.assertEqual(audit.changed_by, self.faculty)
+
+        # Check student notification
+        notif = StudentNotification.objects.get(student=self.alice)
+        self.assertIn('approved', notif.message.lower())
+
+    def test_review_panel_reject_requires_reason(self):
+        att = Attendance.objects.create(
+            student=self.alice,
+            course=self.course,
+            session=self.session1,
+            date=self.today,
+            status=Attendance.Status.ABSENT,
+            marked_by=self.faculty
+        )
+        req = AttendanceCorrectionRequest.objects.create(
+            student=self.alice,
+            session=self.session1,
+            course=self.course,
+            teacher=self.course.faculty,
+            original_status=Attendance.Status.ABSENT,
+            requested_status=Attendance.Status.PRESENT,
+            reason='Forgot to sign',
+            status=AttendanceCorrectionRequest.Status.PENDING
+        )
+
+        self.client.force_login(self.faculty)
+        # Reject without reason fails
+        resp = self.client.post(reverse('reject_correction_request', args=[req.pk]), {
+            'rejection_reason': '',
+        }, follow=True)
+        self.assertContains(resp, 'A reason explaining the rejection is required.')
+        req.refresh_from_db()
+        self.assertEqual(req.status, AttendanceCorrectionRequest.Status.PENDING)
+
+        # Reject with reason succeeds
+        resp = self.client.post(reverse('reject_correction_request', args=[req.pk]), {
+            'rejection_reason': 'No signature found on roll sheet',
+        }, follow=True)
+        self.assertContains(resp, 'Rejected correction request')
+        req.refresh_from_db()
+        self.assertEqual(req.status, AttendanceCorrectionRequest.Status.REJECTED)
+        self.assertEqual(req.rejection_reason, 'No signature found on roll sheet')
+
+        # Attendance remains ABSENT
+        att.refresh_from_db()
+        self.assertEqual(att.status, Attendance.Status.ABSENT)
+
+    def test_concurrency_stale_register_does_not_overwrite_approved_correction(self):
+        att = Attendance.objects.create(
+            student=self.alice,
+            course=self.course,
+            session=self.session1,
+            date=self.today,
+            status=Attendance.Status.ABSENT,
+            marked_by=self.faculty
+        )
+        req = AttendanceCorrectionRequest.objects.create(
+            student=self.alice,
+            session=self.session1,
+            course=self.course,
+            teacher=self.course.faculty,
+            original_status=Attendance.Status.ABSENT,
+            requested_status=Attendance.Status.PRESENT,
+            reason='Was present',
+            status=AttendanceCorrectionRequest.Status.PENDING
+        )
+
+        # Tab loaded at T0
+        loaded_at = timezone.now() - timedelta(minutes=10)
+
+        # Approval happens at T1
+        req.status = AttendanceCorrectionRequest.Status.APPROVED
+        req.reviewed_at = timezone.now() - timedelta(minutes=2)
+        req.save()
+        att.status = Attendance.Status.PRESENT
+        att.save()
+
+        # Teacher submits register from stale tab at T2 with loaded_at=T0, attempting to mark Alice 'A'
+        self.client.force_login(self.faculty)
+        resp = self.client.post(reverse('attendance_register'), {
+            'course': self.course.pk,
+            'date': self.today.isoformat(),
+            'session': self.session1.pk,
+            'loaded_at': loaded_at.isoformat(),
+            f's{self.alice.pk}': 'A',
+            f's{self.bob.pk}': 'P',
+        }, follow=True)
+
+        self.assertContains(resp, 'Protected from overwrite')
+        att.refresh_from_db()
+        # Alice is still PRESENT! Overwrite was prevented.
+        self.assertEqual(att.status, Attendance.Status.PRESENT)
+
+    def test_student_attendance_report_drawer_api(self):
+        self.client.force_login(self.faculty)
+        url = reverse('api_student_attendance_report', args=[self.alice.pk, self.course.pk])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data['student']['full_name'], self.alice.get_full_name())
+        self.assertEqual(data['course']['code'], self.course.code)
+
+

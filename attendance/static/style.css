@@ -33,7 +33,7 @@
   --shadow-card: 0 1px 2px rgba(30,42,56,0.06), 0 6px 16px -8px rgba(30,42,56,0.18);
 }
 
-,::before,*::after{ box-sizing: border-box; }
+*, *::before, *::after{ box-sizing: border-box; }
 html{ scroll-behavior: smooth; }
 
 body{
@@ -598,4 +598,104 @@ button{ font-family: inherit; cursor:pointer; }
   .stat-grid{ grid-template-columns: 1fr; }
   .register{ display:block; overflow-x:auto; white-space:nowrap; }
   .topbar-inner{ padding: 0 18px; }
+}
+
+/* =========================================================
+   MODALS
+   ========================================================= */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 29, 52, 0.65);
+  backdrop-filter: blur(3px);
+  z-index: 1200;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.modal-backdrop.open {
+  display: flex;
+}
+
+.modal-card, .modal-dialog {
+  background: #FFFFFF !important;
+  border: 1px solid var(--rule, #D9D2BD);
+  border-radius: 6px;
+  box-shadow: 0 16px 40px rgba(14, 29, 52, 0.28);
+  width: 100%;
+  max-width: 480px;
+  box-sizing: border-box !important;
+  margin: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 14px 20px;
+  background: var(--navy, #26365C);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--gold, #C6963B);
+  box-sizing: border-box;
+}
+
+.modal-title {
+  margin: 0;
+  font-family: var(--font-display, serif);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: #FFFFFF;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.modal-close:hover {
+  color: var(--gold, #C6963B);
+}
+
+.modal-body, .modal-content {
+  padding: 18px 20px;
+  background: #FFFFFF !important;
+  color: var(--ink, #1E2A38);
+  box-sizing: border-box !important;
+  overflow-y: auto;
+  max-height: calc(85vh - 130px);
+}
+
+.modal-body textarea,
+.modal-body select,
+.modal-body input,
+.modal-content textarea,
+.modal-content select,
+.modal-content input {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block;
+}
+
+.modal-footer {
+  padding: 12px 20px;
+  background: var(--paper-2, #FAF8F3) !important;
+  border-top: 1px solid var(--rule, #D9D2BD);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  box-sizing: border-box;
 }

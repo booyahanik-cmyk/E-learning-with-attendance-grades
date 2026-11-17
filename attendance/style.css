@@ -879,3 +879,37 @@ body {
     display: none;
   }
 }
+
+
+/* Fix for modal-card and modal-body in review panel */
+.modal-card {
+  background: #FFFFFF !important;
+  border: 1px solid var(--rule, #D9D2BD);
+  border-radius: 6px;
+  box-shadow: 0 16px 40px rgba(14, 29, 52, 0.28);
+  width: 100%;
+  max-width: 480px;
+  box-sizing: border-box !important;
+  margin: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-body {
+  padding: 18px 20px;
+  background: #FFFFFF !important;
+  color: var(--ink, #1E2A38);
+  box-sizing: border-box !important;
+  overflow-y: auto;
+  max-height: calc(85vh - 130px);
+}
+
+.modal-body textarea,
+.modal-body select,
+.modal-body input {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block;
+}

@@ -1,7 +1,9 @@
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q
 from django.http import Http404
 from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 
 from attendance.models import User
@@ -21,16 +23,17 @@ def _course_progress(user, course):
 
 @login_required
 def course_catalog(request):
-    """Browse all available courses with search, category filter, and student progress metrics."""
+    """Browse all published courses with search, category filter, and student progress metrics."""
     if request.user.role in [User.Role.FACULTY, User.Role.ADMIN] or request.user.is_superuser:
         return faculty_dashboard(request)
 
     q = request.GET.get('q', '').strip()
     cat = request.GET.get('cat', '')
 
+    # Distinct counts prevent SQL Cartesian product inflation between lessons and enrollments
     courses = LSCourse.objects.select_related('instructor').annotate(
-        n_lessons=Count('lessons'),
-        n_students=Count('enrollments'),
+        n_lessons=Count('lessons', distinct=True),
+        n_students=Count('enrollments', distinct=True),
     ).filter(is_published=True)
 
     if q:
@@ -45,16 +48,18 @@ def course_catalog(request):
         courses = courses.filter(category=cat)
 
     courses = courses.order_by('-id')
-    all_categories = list(LSCourse.objects.values_list('category', flat=True).distinct())
+    all_categories = list(
+        LSCourse.objects.filter(is_published=True).values_list('category', flat=True).distinct()
+    )
 
-    # User overall statistics
+    # User overall statistics - only count published, accessible courses
     user_enrolled_courses = set(
         LSEnrollment.objects.filter(user=request.user).values_list('course_id', flat=True)
     )
     user_enrolled_count = len(user_enrolled_courses)
     user_completed_lessons = LSProgress.objects.filter(user=request.user).count()
     user_vouchers_count = LSVoucher.objects.filter(user=request.user).count()
-    total_courses_count = LSCourse.objects.count()
+    total_courses_count = LSCourse.objects.filter(is_published=True).count()
 
     # Pre-calculate progress for enrolled courses
     course_progress_map = {}
@@ -159,19 +164,37 @@ def course_detail(request, course_id):
 
 
 @login_required
+@require_POST
 def enroll(request, course_id):
-    """Enroll the current user in a course."""
+    """Enroll the current student in an accessible published course."""
+    if request.user.role != User.Role.STUDENT and not request.user.is_superuser:
+        messages.error(request, 'Only students can enroll in academic courses.')
+        return redirect('ls_course_detail', course_id=course_id)
+
     course = get_object_or_404(LSCourse, pk=course_id)
+    if not course.is_published:
+        messages.error(request, 'Cannot enroll in an unpublished course.')
+        return redirect('ls_catalog')
+
     LSEnrollment.objects.get_or_create(user=request.user, course=course)
     messages.success(request, f'Successfully enrolled in "{course.title}"! Welcome to the class.')
     return redirect('ls_course_detail', course_id=course_id)
 
 
 @login_required
+@require_POST
 def complete_lesson(request, lesson_id):
-    """Mark a lesson as completed for the current user and guide to the next."""
+    """Mark a lesson as completed for the current enrolled student and guide to the next."""
+    if request.user.role != User.Role.STUDENT and not request.user.is_superuser:
+        messages.error(request, 'Only students can mark lessons as complete.')
+        return redirect('ls_catalog')
+
     lesson = get_object_or_404(LSLesson, pk=lesson_id)
     course = lesson.course
+
+    if not course.is_published:
+        messages.error(request, 'Cannot complete lessons for an unpublished course.')
+        return redirect('ls_catalog')
 
     # Must be enrolled
     if not LSEnrollment.objects.filter(user=request.user, course=course).exists():
@@ -198,32 +221,38 @@ def complete_lesson(request, lesson_id):
     if curr_idx != -1 and curr_idx + 1 < len(lessons):
         next_les = lessons[curr_idx + 1]
         messages.success(request, f'Completed Lecture {lesson.position}: "{lesson.title}". Proceeding to next lecture!')
-        return redirect(f'/learnsphere/course/{course.id}/?lesson={next_les.id}')
+        return redirect(f"/learnsphere/course/{course.id}/?lesson={next_les.id}")
 
-    messages.success(request, f'Completed Lecture {lesson.position}: "{lesson.title}".')
     return redirect('ls_course_detail', course_id=course.id)
 
 
 @login_required
 def my_learning(request):
-    """Show enrolled courses with progress gauges and earned reward vouchers."""
-    enrollments = LSEnrollment.objects.filter(
-        user=request.user
-    ).select_related('course', 'course__instructor')
+    """Student portal dashboard showing enrolled tracks, completed lessons and vouchers."""
+    if request.user.role in [User.Role.FACULTY, User.Role.ADMIN] or request.user.is_superuser:
+        return faculty_dashboard(request)
 
+    enrollments = LSEnrollment.objects.filter(user=request.user).select_related('course').order_by('-enrolled_at')
+    
     items = []
     completed_courses_count = 0
     total_completed_lessons = LSProgress.objects.filter(user=request.user).count()
 
-    for e in enrollments:
-        stats = _course_progress(request.user, e.course)
-        items.append((e.course, stats))
-        if stats[0] > 0 and stats[1] == stats[0]:
+    for en in enrollments:
+        total, done, pct = _course_progress(request.user, en.course)
+        voucher = LSVoucher.objects.filter(user=request.user, course=en.course).first()
+        if total and done == total:
             completed_courses_count += 1
+        items.append({
+            'enrollment': en,
+            'course': en.course,
+            'total': total,
+            'done': done,
+            'pct': pct,
+            'voucher': voucher,
+        })
 
-    vouchers = LSVoucher.objects.filter(
-        user=request.user
-    ).select_related('course').order_by('-id')
+    vouchers = LSVoucher.objects.filter(user=request.user).select_related('course').order_by('-issued_at')
 
     return render(request, 'learnsphere/my_learning.html', {
         'items': items,
@@ -269,25 +298,10 @@ def add_course(request):
 
     return render(request, 'learnsphere/add_course.html', {'active_tab': 'learnsphere'})
 
-@login_required
-def delete_course(request, course_id):
-    """Instructor-only: delete a course they created."""
-    course = get_object_or_404(LSCourse, pk=course_id)
-    if course.instructor != request.user and request.user.role != User.Role.ADMIN and not request.user.is_superuser:
-        messages.error(request, 'You can only delete courses that you authored.')
-        return redirect('ls_course_detail', course_id=course_id)
-
-    if request.method == 'POST':
-        course_title = course.title
-        course.delete()
-        messages.success(request, f'Course "{course_title}" was deleted.')
-        return redirect('ls_catalog')
-    else:
-        # Fallback if accessed via GET accidentally
-        return redirect('ls_catalog')
 
 @login_required
 def faculty_dashboard(request):
+    """Faculty/Admin overview of authored courses, total enrolments and materials."""
     if request.user.role not in [User.Role.FACULTY, User.Role.ADMIN] and not request.user.is_superuser:
         raise Http404()
     q = request.GET.get('q', '').strip()
@@ -329,6 +343,7 @@ def faculty_dashboard(request):
         }
     })
 
+
 @login_required
 def edit_course(request, course_id):
     if request.user.role not in [User.Role.FACULTY, User.Role.ADMIN] and not request.user.is_superuser:
@@ -339,17 +354,62 @@ def edit_course(request, course_id):
         return redirect('ls_catalog')
         
     if request.method == 'POST':
-        course.title = request.POST.get('title', '').strip()
-        course.category = request.POST.get('category', 'General').strip()
-        course.description = request.POST.get('description', '').strip()
-        if not course.title:
+        title = request.POST.get('title', '').strip()
+        category = request.POST.get('category', 'General').strip()
+        icon = request.POST.get('icon', '').strip()
+        description = request.POST.get('description', '').strip()
+        
+        if not title:
             messages.error(request, 'Course title is required.')
-        else:
-            course.save()
-            messages.success(request, f'Course "{course.title}" updated.')
-            return redirect('ls_catalog')
+            return render(request, 'learnsphere/edit_course.html', {'course': course, 'active_tab': 'learnsphere'})
             
+        course.title = title
+        course.category = category
+        course.icon = icon or ''
+        course.description = description
+        course.save()
+        
+        messages.success(request, f'Course "{title}" updated successfully.')
+        return redirect('ls_catalog')
+        
     return render(request, 'learnsphere/edit_course.html', {'course': course, 'active_tab': 'learnsphere'})
+
+
+@login_required
+def delete_course(request, course_id):
+    if request.user.role not in [User.Role.FACULTY, User.Role.ADMIN] and not request.user.is_superuser:
+        raise Http404()
+    course = get_object_or_404(LSCourse, pk=course_id)
+    if course.instructor != request.user and request.user.role != User.Role.ADMIN and not request.user.is_superuser:
+        messages.error(request, 'You can only delete courses that you authored.')
+        return redirect('ls_catalog')
+        
+    if request.method == 'POST':
+        title = course.title
+        course.delete()
+        messages.success(request, f'Course "{title}" has been deleted.')
+        return redirect('ls_catalog')
+        
+    return render(request, 'learnsphere/delete_course_confirm.html', {'course': course, 'active_tab': 'learnsphere'})
+
+
+@login_required
+def toggle_publish(request, course_id):
+    if request.user.role not in [User.Role.FACULTY, User.Role.ADMIN] and not request.user.is_superuser:
+        raise Http404()
+    course = get_object_or_404(LSCourse, pk=course_id)
+    if course.instructor != request.user and request.user.role != User.Role.ADMIN and not request.user.is_superuser:
+        messages.error(request, 'You can only publish or unpublish courses you authored.')
+        return redirect('ls_catalog')
+        
+    if request.method == 'POST':
+        course.is_published = not course.is_published
+        course.save()
+        status_str = 'published and available to students' if course.is_published else 'unpublished and moved to drafts'
+        messages.success(request, f'Course "{course.title}" is now {status_str}.')
+        
+    return redirect('ls_catalog')
+
 
 @login_required
 def manage_lectures(request, course_id):
@@ -357,47 +417,53 @@ def manage_lectures(request, course_id):
         raise Http404()
     course = get_object_or_404(LSCourse, pk=course_id)
     if course.instructor != request.user and request.user.role != User.Role.ADMIN and not request.user.is_superuser:
-        raise Http404()
+        messages.error(request, 'You can only manage lectures for courses you authored.')
+        return redirect('ls_catalog')
         
+    lessons = course.lessons.all().order_by('position', 'id')
+    
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'add':
             title = request.POST.get('title', '').strip()
             content = request.POST.get('content', '').strip()
-            if title:
-                pos = course.lessons.count() + 1
-                LSLesson.objects.create(course=course, title=title, content=content, position=pos)
-                messages.success(request, 'Lecture added.')
-        elif action == 'delete':
-            lesson_id = request.POST.get('lesson_id')
-            LSLesson.objects.filter(id=lesson_id, course=course).delete()
-            # reorder
-            for i, l in enumerate(course.lessons.order_by('position', 'id'), 1):
-                l.position = i
-                l.save()
-            messages.success(request, 'Lecture deleted.')
+            if not title:
+                messages.error(request, 'Lecture title is required.')
+            else:
+                next_pos = (lessons.last().position + 1) if lessons.exists() else 1
+                LSLesson.objects.create(
+                    course=course,
+                    title=title,
+                    content=content,
+                    position=next_pos
+                )
+                messages.success(request, f'Lecture "{title}" added.')
+            return redirect('ls_manage_lectures', course_id=course.id)
+            
         elif action == 'edit':
             lesson_id = request.POST.get('lesson_id')
-            l = LSLesson.objects.filter(id=lesson_id, course=course).first()
-            if l:
-                l.title = request.POST.get('title', '').strip()
-                l.content = request.POST.get('content', '').strip()
-                l.save()
-                messages.success(request, 'Lecture updated.')
-        return redirect('ls_manage_lectures', course_id=course.id)
-        
-    lessons = course.lessons.all().order_by('position', 'id')
-    return render(request, 'learnsphere/manage_lectures.html', {'course': course, 'lessons': lessons, 'active_tab': 'learnsphere'})
-
-@login_required
-def toggle_publish(request, course_id):
-    if request.method != 'POST':
-        raise Http404()
-    course = get_object_or_404(LSCourse, pk=course_id)
-    if course.instructor != request.user and request.user.role != User.Role.ADMIN and not request.user.is_superuser:
-        raise Http404()
-    course.is_published = not course.is_published
-    course.save()
-    status = 'published' if course.is_published else 'unpublished (saved as draft)'
-    messages.success(request, f'Course "{course.title}" has been {status}.')
-    return redirect('ls_catalog')
+            lesson = get_object_or_404(LSLesson, pk=lesson_id, course=course)
+            title = request.POST.get('title', '').strip()
+            content = request.POST.get('content', '').strip()
+            if not title:
+                messages.error(request, 'Lecture title is required.')
+            else:
+                lesson.title = title
+                lesson.content = content
+                lesson.save()
+                messages.success(request, f'Lecture "{title}" updated.')
+            return redirect('ls_manage_lectures', course_id=course.id)
+            
+        elif action == 'delete':
+            lesson_id = request.POST.get('lesson_id')
+            lesson = get_object_or_404(LSLesson, pk=lesson_id, course=course)
+            title = lesson.title
+            lesson.delete()
+            messages.success(request, f'Lecture "{title}" deleted.')
+            return redirect('ls_manage_lectures', course_id=course.id)
+            
+    return render(request, 'learnsphere/manage_lectures.html', {
+        'course': course,
+        'lessons': lessons,
+        'active_tab': 'learnsphere'
+    })

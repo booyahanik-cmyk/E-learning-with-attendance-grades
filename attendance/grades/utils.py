@@ -1,6 +1,8 @@
 from decimal import Decimal
 from .models import Semester, GradeRecord, Subject
 
+# Reference data for test suites and demo fixture initializers only.
+# Not used as fallback for student queries.
 DEFAULT_SEMESTER_DATA = {
     1: {
         "semester": 1,
@@ -66,8 +68,11 @@ DEFAULT_SEMESTER_DATA = {
 
 
 def get_student_semester_grades(student, semester_num=1):
-    """Retrieve or compute academic performance metrics for a student in a semester."""
-    # Look for database records
+    """
+    Retrieve or compute genuine academic performance metrics for a student in a semester.
+    If the student has no recorded grades in the database for that semester, returns
+    'No grades available' with an unavailable SGPA ('N/A').
+    """
     records = GradeRecord.objects.filter(
         student=student,
         semester__number=semester_num
@@ -118,35 +123,32 @@ def get_student_semester_grades(student, semester_num=1):
             "stampText": f"SEM {semester_num}",
             "subjects": subjects,
             "avgScore": f"{avg_raw:.1f}",
-            "highestSubject": highest_sub or "N/A"
+            "highestSubject": highest_sub or "N/A",
+            "has_records": True
         }
 
-    # If student has no custom records in DB for this semester, check DEFAULT_SEMESTER_DATA
-    if semester_num in DEFAULT_SEMESTER_DATA:
-        data = dict(DEFAULT_SEMESTER_DATA[semester_num])
-        subjects = data['subjects']
-        avg_raw = sum(s['total'] for s in subjects) / len(subjects) if subjects else 0.0
-        best = max(subjects, key=lambda s: s['total']) if subjects else None
-        data['avgScore'] = f"{avg_raw:.1f}"
-        data['highestSubject'] = f"{best['name']} ({best['code']} - {best['total']}/100)" if best else "N/A"
-        return data
-
+    # No invented fallback: genuine empty state
     return {
         "semester": semester_num,
-        "sgpa": "0.00",
+        "sgpa": "N/A",
         "totalSubjects": 0,
-        "status": "N/A",
+        "status": "No grades available",
         "totalCredits": 0,
         "stampText": f"SEM {semester_num}",
         "subjects": [],
-        "avgScore": "0.0",
-        "highestSubject": "N/A"
+        "avgScore": "N/A",
+        "highestSubject": "N/A",
+        "has_records": False
     }
 
 
 def get_all_student_semesters(student):
-    """Return dictionary of all available semesters with data for client-side instant switching."""
+    """Return dictionary of all configured semesters from database for client-side instant switching."""
     result = {}
-    for sem in [1, 2, 3, 4]:
-        result[sem] = get_student_semester_grades(student, sem)
+    semesters = Semester.objects.all().order_by('number')
+    if not semesters.exists():
+        # Fallback to configured Semester 1 if no records exist yet
+        return {1: get_student_semester_grades(student, 1)}
+    for sem in semesters:
+        result[sem.number] = get_student_semester_grades(student, sem.number)
     return result

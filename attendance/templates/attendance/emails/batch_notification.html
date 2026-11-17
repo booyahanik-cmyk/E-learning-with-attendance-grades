@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #FAF8F3;
+    color: #1A1A1A;
+    margin: 0;
+    padding: 24px;
+  }
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    background: #FFFFFF;
+    border: 1px solid #E5E0D5;
+    border-radius: 6px;
+    padding: 32px;
+  }
+  .header {
+    border-bottom: 2px solid #C6963B;
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+  }
+  .brand {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0E1D34;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0E1D34;
+    margin: 16px 0 8px 0;
+  }
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 14px;
+  }
+  .table th {
+    background-color: #0E1D34;
+    color: #FFFFFF;
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .table td {
+    padding: 12px;
+    border-bottom: 1px solid #EAE5D6;
+    vertical-align: top;
+  }
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-requested {
+    background-color: #E8F5E9;
+    color: #2E7D32;
+  }
+  .status-current {
+    color: #7A7265;
+    font-size: 11px;
+  }
+  .reason-box {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #333333;
+    background: #FDFBF7;
+    padding: 6px 8px;
+    border-left: 3px solid #C6963B;
+    border-radius: 2px;
+  }
+  .btn-review {
+    display: inline-block;
+    background-color: #0E1D34;
+    color: #FFFFFF !important;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 14px 28px;
+    border-radius: 4px;
+    margin: 20px 0;
+    border: 1px solid #C6963B;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .footer {
+    margin-top: 28px;
+    font-size: 12px;
+    color: #7A7265;
+    border-top: 1px solid #E5E0D5;
+    padding-top: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <span class="brand">Cobra Coaching · Attendance Registry</span>
+  </div>
+
+  <h2 class="title">{{ count }} student{{ count|pluralize }} requested attendance corrections</h2>
+  <p>Hello Prof. {{ teacher.get_full_name|default:teacher.username }},</p>
+  <p>The following student{{ count|pluralize }} submitted attendance correction requests for courses you teach:</p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Student &amp; Roll No</th>
+        <th>Subject</th>
+        <th>Date &amp; Session</th>
+        <th>Recorded &rarr; Requested</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for req in requests %}
+        <tr>
+          <td>
+            <strong>{{ req.student.get_full_name|default:req.student.username }}</strong><br>
+            <span style="font-size:12px;color:#7A7265;">Roll: {{ req.student.roll_number|default:req.student.username }}</span>
+            <div class="reason-box"><strong>Reason:</strong> {{ req.reason }}</div>
+          </td>
+          <td>
+            <strong>{{ req.course.code }}</strong><br>
+            <span style="font-size:12px;color:#555;">{{ req.course.name }}</span>
+          </td>
+          <td>
+            {{ req.session.date|date:"d M Y" }}<br>
+            <span style="font-size:12px;color:#7A7265;">{{ req.session.session_identifier }}</span>
+          </td>
+          <td>
+            <div class="status-current">Recorded: {{ req.get_original_status_display|default:"Missing" }}</div>
+            <div style="margin-top:4px;">
+              <span class="status-badge status-requested">&rarr; {{ req.get_requested_status_display }}</span>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div style="text-align: center; margin: 28px 0;">
+    <a href="{{ review_url }}" class="btn-review">Review attendance requests &rarr;</a>
+  </div>
+
+  <p style="font-size: 13px; color: #555;">
+    This focused review link will expire on <strong>{{ expires_at|date:"d M Y, h:i A" }}</strong>.<br>
+    Opening this link displays the requests and student attendance reports without changing any attendance until you confirm.
+  </p>
+
+  <div class="footer">
+    <p>&copy; 2026 Cobra Coaching Academic Management Platform. All decisions are immutably logged for audit verification.</p>
+  </div>
+</div>
+</body>
+</html>

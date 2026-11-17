@@ -26,17 +26,30 @@
         {% if user.is_authenticated %}
           {% if user.role == 'student' %}
             <a href="{% url 'student_home' %}" class="{% if active_tab == 'attendance' %}active{% endif %}">Attendance</a>
+            <a href="{% url 'my_correction_requests' %}" class="{% if active_tab == 'corrections' %}active{% endif %}">Correction Requests</a>
             <a href="{% url 'student_grades' %}" class="{% if active_tab == 'grades' %}active{% endif %}">Grades</a>
             <a href="{% url 'ls_catalog' %}" class="{% if active_tab == 'learnsphere' %}active{% endif %}">LearnSphere</a>
           {% elif user.role == 'faculty' %}
             <a href="{% url 'faculty_dashboard' %}" class="{% if active_tab == 'dashboard' %}active{% endif %}">Dashboard</a>
             <a href="{% url 'attendance_register' %}" class="{% if active_tab == 'attendance' %}active{% endif %}">Attendance</a>
+            <a href="{% url 'faculty_corrections' %}" class="{% if active_tab == 'corrections' %}active{% endif %}">
+              Correction Requests
+              {% if pending_corrections_count %}
+                <span class="badge" style="background:var(--gold, #C6963B); color:#1B2A4A; font-size:0.75rem; padding:2px 7px; border-radius:10px; font-weight:700; margin-left:4px;">{{ pending_corrections_count }}</span>
+              {% endif %}
+            </a>
             <a href="{% url 'faculty_grades' %}" class="{% if active_tab == 'grades' %}active{% endif %}">Grades</a>
             <a href="{% url 'reports' %}" class="{% if active_tab == 'reports' %}active{% endif %}">Reports</a>
             <a href="{% url 'ls_catalog' %}" class="{% if active_tab == 'learnsphere' %}active{% endif %}">LearnSphere</a>
           {% else %}
             <a href="{% url 'faculty_dashboard' %}" class="{% if active_tab == 'dashboard' %}active{% endif %}">Dashboard</a>
             <a href="{% url 'attendance_register' %}" class="{% if active_tab == 'attendance' %}active{% endif %}">Attendance</a>
+            <a href="{% url 'faculty_corrections' %}" class="{% if active_tab == 'corrections' %}active{% endif %}">
+              Correction Requests
+              {% if pending_corrections_count %}
+                <span class="badge" style="background:var(--gold, #C6963B); color:#1B2A4A; font-size:0.75rem; padding:2px 7px; border-radius:10px; font-weight:700; margin-left:4px;">{{ pending_corrections_count }}</span>
+              {% endif %}
+            </a>
             <a href="{% url 'faculty_grades' %}" class="{% if active_tab == 'grades' %}active{% endif %}">Grades</a>
             <a href="{% url 'reports' %}" class="{% if active_tab == 'reports' %}active{% endif %}">Reports</a>
             <a href="{% url 'ls_catalog' %}" class="{% if active_tab == 'learnsphere' %}active{% endif %}">LearnSphere</a>

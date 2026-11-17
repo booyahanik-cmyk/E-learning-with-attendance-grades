@@ -11,7 +11,7 @@ from datetime import timedelta
 from django.db.models import Count, Max, Q
 from django.utils import timezone
 
-from .models import Attendance
+from .models import Attendance, ClassSession
 
 # A late arrival still attended the class; only 'A' counts against a student.
 ATTENDED = (Attendance.Status.PRESENT, Attendance.Status.LATE)
@@ -101,8 +101,20 @@ def shortfalls(rows):
     return sorted(short, key=lambda r: r['percent'])
 
 
+def class_sessions(course):
+    """Published class sessions held for this course, newest first."""
+    return list(
+        course.sessions.filter(is_published=True).order_by('-date', 'session_identifier')
+    )
+
+
 def class_dates(course):
-    """Dates this course has a register for, newest first."""
+    """Dates this course has held a session or has an attendance record for, newest first."""
+    sess_dates = list(
+        course.sessions.filter(is_published=True).order_by('-date').values_list('date', flat=True).distinct()
+    )
+    if sess_dates:
+        return sess_dates
     return list(
         course.attendance_records.order_by('-date').values_list('date', flat=True).distinct()
     )

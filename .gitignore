@@ -5,5 +5,9 @@ __pycache__/
 .env
 .env.*
 !.env.example
+*.sqlite3
+*.zip
+**/.claude/settings.local.json
+**/.claude/launch.json
 .vscode/
 .idea/

@@ -1,0 +1,495 @@
+{% extends 'attendance/base.html' %}
+{% load static %}
+
+{% block title %}Review Attendance Corrections — Cobra Coaching{% endblock %}
+
+{% block body %}
+<main class="page">
+  <div class="container" style="max-width: 1100px; margin: 0 auto; padding: 24px 28px;">
+
+    <!-- Top Breadcrumb & Page Head -->
+    <div class="page-head" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+      <div>
+        <span class="eyebrow" style="font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--navy); margin-bottom: 6px; display: block;">
+          {% if is_email_access %}Secure Email Access · Single-Batch Panel{% else %}Faculty Desk · Correction Review{% endif %}
+        </span>
+        <h1 style="font-family: var(--font-display); font-size: 2.3rem; font-weight: 700; color: var(--ink); margin: 0 0 6px 0;">
+          {% if batch %}Email Batch #{{ batch.batch_id|stringformat:".8s" }} Review{% else %}Attendance Correction Requests{% endif %}
+        </h1>
+        <p style="margin: 0; color: var(--ink-soft); font-size: 0.95rem;">
+          {% if batch %}
+            Showing the <strong>{{ req_items|length }}</strong> request{{ req_items|length|pluralize }} included in your email notification.
+          {% else %}
+            Review student-submitted attendance correction requests across your authorized academic courses.
+          {% endif %}
+        </p>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px;">
+        {% if is_email_access %}
+          <span style="font-family: var(--font-mono); font-size: 0.75rem; color: #2C5282; background: #EBF8FF; border: 1px solid #BEE3F8; padding: 5px 10px; border-radius: 4px;">
+            🔒 Restricted Email Access
+          </span>
+        {% else %}
+          <a href="{% url 'faculty_dashboard' %}" class="btn btn-ghost" style="padding: 6px 12px; font-size: 0.82rem; text-decoration: none;">
+            &larr; Faculty Dashboard
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="stat-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+      <div class="card stat-card" style="background: var(--card); border: 1px solid var(--rule); padding: 16px 20px; border-radius: 4px;">
+        <span class="stat-label">TOTAL IN BATCH</span>
+        <div class="stat-value" style="font-size: 1.8rem; margin: 4px 0;">{{ req_items|length }}</div>
+        <span class="stat-caption">Grouped notification</span>
+      </div>
+      <div class="card stat-card" style="background: var(--card); border: 1px solid var(--rule); padding: 16px 20px; border-radius: 4px;">
+        <span class="stat-label">PENDING DECISION</span>
+        <div class="stat-value" style="font-size: 1.8rem; color: var(--gold, #C6963B); margin: 4px 0;">{{ pending_count }}</div>
+        <span class="stat-caption">Awaiting your review</span>
+      </div>
+      <div class="card stat-card" style="background: var(--card); border: 1px solid var(--rule); padding: 16px 20px; border-radius: 4px;">
+        <span class="stat-label">REVIEW POLICY</span>
+        <div class="stat-value" style="font-size: 1.8rem; color: var(--present); margin: 4px 0;">1-Click</div>
+        <span class="stat-caption">Audit-logged confirmation</span>
+      </div>
+    </div>
+
+    <!-- Recorded Lateness This Month Section -->
+    <div class="card panel" style="background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 20px 24px; margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <span style="font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--navy); font-weight: 700; display: block;">
+            Monthly Lateness Register
+          </span>
+          <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--ink); margin: 2px 0 0 0;">
+            Recorded Lateness in {{ current_month_name }}
+          </h2>
+        </div>
+        <span style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-soft);">
+          {% if is_email_access %}Restricted to email batch cohort{% else %}Across authorized courses{% endif %}
+        </span>
+      </div>
+
+      {% if late_students_this_month %}
+        <div style="overflow-x: auto;">
+          <table class="register" style="width: 100%; border-collapse: collapse; margin-top: 8px;">
+            <thead>
+              <tr style="border-bottom: 2px solid var(--rule); text-align: left;">
+                <th style="padding: 8px 12px; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; color: var(--navy);">Student</th>
+                <th style="padding: 8px 12px; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; color: var(--navy);">Course</th>
+                <th style="padding: 8px 12px; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; color: var(--navy); text-align: center;">Lates in {{ current_month_name }}</th>
+                <th style="padding: 8px 12px; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; color: var(--navy);">Sessions Recorded Late</th>
+                <th style="padding: 8px 12px; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; color: var(--navy); text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in late_students_this_month %}
+                <tr style="border-bottom: 1px solid var(--rule);">
+                  <td style="padding: 10px 12px;">
+                    <strong>{{ item.student.get_full_name|default:item.student.username }}</strong>
+                    <span class="meta" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-soft);">Roll: {{ item.student.roll_number|default:item.student.username }}</span>
+                  </td>
+                  <td style="padding: 10px 12px; font-family: var(--font-mono); font-size: 0.82rem;">
+                    {{ item.course.code }}
+                  </td>
+                  <td style="padding: 10px 12px; text-align: center;">
+                    <span class="stamp stamp-late" style="font-size: 0.78rem; font-weight: 700; padding: 2px 8px;">
+                      {{ item.late_count }} late
+                    </span>
+                  </td>
+                  <td style="padding: 10px 12px; font-size: 0.8rem; color: var(--ink-soft);">
+                    {% for s in item.sessions %}
+                      <span style="display: inline-block; background: #FAF8F3; border: 1px solid var(--rule); border-radius: 3px; padding: 2px 6px; margin: 2px; font-family: var(--font-mono); font-size: 0.75rem;">
+                        {{ s.date|date:"d M" }} ({{ s.identifier }})
+                      </span>
+                    {% endfor %}
+                  </td>
+                  <td style="padding: 10px 12px; text-align: right;">
+                    <button type="button" class="btn btn-sm btn-ghost" style="padding: 4px 10px; font-size: 0.78rem;"
+                            onclick="openReportDrawer('{{ item.student.pk }}', '{{ item.course.pk }}')">
+                      View Report &rarr;
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p style="margin: 8px 0 0 0; font-size: 0.88rem; color: var(--ink-soft); font-style: italic;">
+          No students have been recorded as late during {{ current_month_name }} for the relevant subject(s).
+        </p>
+      {% endif %}
+    </div>
+
+    <!-- Requests Container -->
+    <div style="display: flex; flex-direction: column; gap: 18px;">
+      {% for item in req_items %}
+        {% with req=item.request %}
+          <div class="card" id="req-card-{{ req.pk }}" style="background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 20px 24px; transition: border-color 0.2s ease; {% if req.status == 'approved' %}border-left: 5px solid var(--present);{% elif req.status == 'rejected' %}border-left: 5px solid var(--absent);{% elif req.status == 'cancelled' %}border-left: 5px solid #A0AEC0;{% else %}border-left: 5px solid var(--gold);{% endif %}">
+            
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <span style="font-family: var(--font-mono); font-size: 0.76rem; font-weight: 700; color: var(--navy); text-transform: uppercase;">
+                  {{ req.course.code }} · {{ req.course.name }}
+                </span>
+                <h3 style="margin: 4px 0 2px 0; font-size: 1.25rem; font-weight: 700; color: var(--ink);">
+                  {{ req.student.get_full_name|default:req.student.username }}
+                  <span style="font-family: var(--font-mono); font-size: 0.82rem; font-weight: normal; color: var(--ink-soft); margin-left: 6px;">
+                    (Roll: {{ req.student.roll_number|default:req.student.username }})
+                  </span>
+                </h3>
+                <div style="font-size: 0.85rem; color: var(--ink-soft); font-family: var(--font-mono);">
+                  Lecture Session: <strong>{{ req.session.date|date:"l, d M Y" }}</strong> · {{ req.session.session_identifier }}
+                </div>
+              </div>
+
+              <!-- Status Badge -->
+              <div>
+                {% if req.status == 'pending' %}
+                  <span class="stamp stamp-late" style="font-size: 0.78rem;">Pending Action</span>
+                {% elif req.status == 'approved' %}
+                  <span class="stamp stamp-present" style="font-size: 0.78rem;">Approved</span>
+                {% elif req.status == 'rejected' %}
+                  <span class="stamp stamp-absent" style="font-size: 0.78rem;">Rejected</span>
+                {% elif req.status == 'cancelled' %}
+                  <span style="font-family: var(--font-mono); font-size: 0.78rem; background: #EAE5D6; padding: 3px 8px; border-radius: 4px;">Cancelled by Student</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Attendance Change Banner -->
+            <div style="background: var(--paper-2, #FAF8F3); border: 1px solid var(--rule); border-radius: 4px; padding: 12px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div>
+                  <span style="font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; color: var(--ink-soft); display: block;">Recorded Status</span>
+                  <strong style="color: {% if item.current_attendance.status == 'P' %}var(--present){% elif item.current_attendance.status == 'L' %}var(--gold){% else %}var(--absent){% endif %};">
+                    {{ item.current_status_display }}
+                  </strong>
+                </div>
+                <span style="font-size: 1.2rem; color: var(--ink-soft);">&rarr;</span>
+                <div>
+                  <span style="font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; color: var(--ink-soft); display: block;">Requested Correction</span>
+                  <strong style="color: var(--present); font-size: 1.05rem;">
+                    {{ req.get_requested_status_display }}
+                  </strong>
+                </div>
+              </div>
+
+              <div>
+                <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-soft);">
+                  Submitted {{ req.created_at|date:"d M Y, h:i A" }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Reason Description -->
+            <div style="margin-bottom: 16px;">
+              <span style="font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; color: var(--navy); text-transform: uppercase;">Student's Stated Reason:</span>
+              <p style="margin: 4px 0 0 0; font-size: 0.92rem; color: var(--ink); line-height: 1.5; background: #FFF; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 4px;">
+                &ldquo;{{ req.reason }}&rdquo;
+              </p>
+            </div>
+
+            <!-- Decision outcome note if already decided -->
+            {% if req.status == 'rejected' and req.rejection_reason %}
+              <div style="background: #FDE8E8; border: 1px solid #F8B4B4; border-radius: 4px; padding: 8px 12px; margin-bottom: 14px; font-size: 0.85rem; color: #9B1C1C;">
+                <strong>Rejection Reason:</strong> {{ req.rejection_reason }}
+                <div style="font-size: 0.75rem; font-family: var(--font-mono); margin-top: 2px;">Decided on {{ req.reviewed_at|date:"d M Y, h:i A" }}</div>
+              </div>
+            {% elif req.status == 'approved' and req.reviewed_at %}
+              <div style="background: #EDF7EE; border: 1px solid #C2D5C8; border-radius: 4px; padding: 8px 12px; margin-bottom: 14px; font-size: 0.85rem; color: #235C43;">
+                <strong>Decision:</strong> Approved and updated attendance register to {{ req.get_requested_status_display }} on {{ req.reviewed_at|date:"d M Y, h:i A" }}.
+              </div>
+            {% endif %}
+
+            <!-- Actions Row -->
+            <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--rule); padding-top: 14px; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <button type="button" class="btn btn-sm btn-ghost" style="padding: 5px 12px; font-size: 0.82rem;"
+                        onclick="openReportDrawer('{{ req.student.pk }}', '{{ req.course.pk }}')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                  View Student Report &rarr;
+                </button>
+              </div>
+
+              {% if req.status == 'pending' %}
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <!-- Reject Button (opens rejection modal) -->
+                  <button type="button" class="btn btn-sm btn-ghost" style="color: var(--absent); border-color: #E2A0A0; padding: 5px 14px; font-size: 0.82rem;"
+                          onclick="openRejectModal('{{ req.pk }}', '{{ req.student.get_full_name|default:req.student.username|escapejs }}', '{{ req.course.code|escapejs }}')">
+                    Reject...
+                  </button>
+
+                  <!-- Approve Form (POST) -->
+                  <form method="post" action="{% url 'approve_correction_request' req.pk %}" style="margin: 0;"
+                        onsubmit="return confirm('Confirm updating {{ req.student.roll_number|default:req.student.username }} attendance in {{ req.course.code }} to {{ req.get_requested_status_display }} on {{ req.session.date }}?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-primary" style="padding: 5px 16px; font-size: 0.82rem; background: var(--present); border-color: var(--present);">
+                      ✓ Approve ({{ req.get_requested_status_display }})
+                    </button>
+                  </form>
+                </div>
+              {% else %}
+                <span style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-soft);">
+                  Decision finalized · Attendance updated
+                </span>
+              {% endif %}
+            </div>
+
+          </div>
+        {% endwith %}
+      {% empty %}
+        <div class="card" style="background: var(--card); border: 1px solid var(--rule); padding: 40px; text-align: center; border-radius: 6px;">
+          <h3>No correction requests found</h3>
+          <p style="color: var(--ink-soft); margin-bottom: 0;">There are no active or historical correction requests associated with this review panel.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</main>
+
+<!-- Rejection Reason Modal -->
+<div class="modal-backdrop" id="reject-modal" aria-hidden="true" style="box-sizing: border-box;">
+  <div class="modal-card" role="dialog" aria-modal="true" style="max-width: 480px; width: 100%; background: #FFFFFF; box-sizing: border-box; overflow: hidden; border-radius: 6px; border: 1px solid var(--rule);">
+    <div class="modal-header" style="background: var(--navy); color: #FFFFFF; padding: 14px 20px; border-bottom: 2px solid var(--gold); display: flex; align-items: center; justify-content: space-between; box-sizing: border-box;">
+      <h3 class="modal-title" style="margin: 0; font-family: var(--font-display); font-size: 1.15rem; color: #FFFFFF;">Reject Correction Request</h3>
+      <button type="button" class="modal-close" onclick="closeRejectModal()" style="background: none; border: none; color: #FFFFFF; font-size: 24px; cursor: pointer;">&times;</button>
+    </div>
+    <form method="post" id="reject-form" action="" style="margin: 0; display: flex; flex-direction: column; width: 100%; box-sizing: border-box;">
+      {% csrf_token %}
+      <div class="modal-body" style="background: #FFFFFF; padding: 18px 20px; color: var(--ink); box-sizing: border-box; width: 100%; max-height: calc(85vh - 130px); overflow-y: auto;">
+        <p style="margin: 0 0 12px 0; font-size: 0.88rem; color: var(--ink); line-height: 1.5;">
+          Rejecting request for <strong id="reject-student-name">—</strong> (<span id="reject-course-code">—</span>).
+          The recorded attendance will remain unchanged.
+        </p>
+        <div style="margin-bottom: 12px; box-sizing: border-box; width: 100%;">
+          <label for="reject-reason-input" style="display: block; font-family: var(--font-mono); font-size: 0.78rem; font-weight: 600; color: var(--navy); margin-bottom: 6px;">
+            Rejection Reason (Required):
+          </label>
+          <textarea name="rejection_reason" id="reject-reason-input" rows="3" required placeholder="Specify why this correction request is declined (e.g. unverified roll call, absent at second check)..."
+                    style="width: 100%; max-width: 100%; box-sizing: border-box; padding: 8px 10px; font-size: 0.88rem; border: 1px solid var(--rule); border-radius: 4px; resize: vertical; display: block; font-family: var(--font-body);"></textarea>
+        </div>
+        <p style="margin: 0; font-size: 0.76rem; color: var(--ink-soft);">
+          This explanation will be shared with the student on their portal.
+        </p>
+      </div>
+      <div class="modal-footer" style="background: var(--paper-2, #FAF8F3); padding: 12px 20px; border-top: 1px solid var(--rule); display: flex; align-items: center; justify-content: flex-end; gap: 10px; box-sizing: border-box;">
+        <button type="button" class="btn btn-ghost" onclick="closeRejectModal()" style="padding: 6px 14px; font-size: 0.84rem;">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="background: var(--absent); border-color: var(--absent); padding: 6px 16px; font-size: 0.84rem; color: #FFF;">Confirm Rejection</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Student Report Side Drawer -->
+<div class="drawer-backdrop" id="report-drawer-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(14,29,52,0.45); z-index: 1050; backdrop-filter: blur(2px);" onclick="closeReportDrawer()"></div>
+<div id="report-drawer" style="position: fixed; top: 0; right: -480px; width: 460px; max-width: 90vw; height: 100%; background: #FAF8F3; box-shadow: -4px 0 24px rgba(0,0,0,0.2); z-index: 1060; transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; overflow: hidden; border-left: 1px solid var(--rule);">
+  <div style="background: #0E1D34; color: #FFF; padding: 18px 22px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <span style="font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; color: var(--gold, #C6963B); text-transform: uppercase;">Student Academic Profile</span>
+      <h3 id="drawer-student-name" style="margin: 2px 0 0 0; font-size: 1.15rem; color: #FFF;">Loading...</h3>
+    </div>
+    <button type="button" onclick="closeReportDrawer()" style="background: none; border: none; color: #FFF; font-size: 24px; cursor: pointer;">&times;</button>
+  </div>
+
+  <div id="drawer-body" style="padding: 22px; overflow-y: auto; flex: 1;">
+    <div style="text-align: center; padding: 40px; color: var(--ink-soft);">
+      Fetching student factual history...
+    </div>
+  </div>
+</div>
+
+<script>
+function openRejectModal(reqId, studentName, courseCode) {
+  const form = document.getElementById('reject-form');
+  const rejectPattern = "{% url 'reject_correction_request' 0 %}";
+  form.action = rejectPattern.replace('/0/', `/${reqId}/`);
+  document.getElementById('reject-student-name').textContent = studentName;
+  document.getElementById('reject-course-code').textContent = courseCode;
+  document.getElementById('reject-reason-input').value = '';
+
+  const modal = document.getElementById('reject-modal');
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeRejectModal() {
+  const modal = document.getElementById('reject-modal');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+function openReportDrawer(studentId, courseId) {
+  const drawer = document.getElementById('report-drawer');
+  const backdrop = document.getElementById('report-drawer-backdrop');
+  const drawerBody = document.getElementById('drawer-body');
+  
+  drawerBody.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--ink-soft);">Fetching student attendance records...</div>';
+  backdrop.style.display = 'block';
+  setTimeout(() => drawer.style.right = '0', 10);
+
+  const reportPattern = "{% url 'api_student_attendance_report' 0 0 %}";
+  const fetchUrl = reportPattern.replace('0/0', `${studentId}/${courseId}`);
+
+  fetch(fetchUrl)
+    .then(r => {
+      if (!r.ok) throw new Error("Could not retrieve student report.");
+      return r.json();
+    })
+    .then(data => {
+      document.getElementById('drawer-student-name').textContent = data.student.full_name + ' (' + data.student.roll_number + ')';
+
+      const historyRows = data.history.map(h => `
+        <tr style="border-bottom: 1px solid #EAE5D6;">
+          <td style="padding: 6px 8px; font-family: var(--font-mono); font-size: 0.78rem;">${h.date}</td>
+          <td style="padding: 6px 8px; font-size: 0.8rem;">${h.session}</td>
+          <td style="padding: 6px 8px; text-align: right;">
+            <span class="stamp ${h.status_code === 'P' ? 'stamp-present' : (h.status_code === 'L' ? 'stamp-late' : 'stamp-absent')}" style="font-size: 0.72rem; padding: 1px 6px;">
+              ${h.status}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+
+      const reqRows = data.requests.history.map(r => `
+        <div style="background: #FFF; border: 1px solid var(--rule); border-radius: 4px; padding: 10px 12px; margin-bottom: 8px; font-size: 0.82rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <strong>${r.date} · ${r.session}</strong>
+            <span class="stamp ${r.status === 'APPROVED' ? 'stamp-present' : (r.status === 'REJECTED' ? 'stamp-absent' : (r.status === 'CANCELLED' ? '' : 'stamp-late'))}" style="font-size: 0.7rem; padding: 1px 5px; ${r.status === 'CANCELLED' ? 'background:#EAE5D6; color:var(--ink-soft);' : ''}">${r.status}</span>
+          </div>
+          <div style="color: var(--ink-soft); margin-bottom: 4px;">
+            Requested: <strong>${r.requested_status}</strong> (Was: ${r.original_status})
+          </div>
+          <div style="font-style: italic; color: var(--ink); margin-bottom: 4px;">&ldquo;${r.reason}&rdquo;</div>
+          ${r.rejection_reason ? `<div style="color: #9B1C1C; font-size: 0.76rem;">Feedback: ${r.rejection_reason}</div>` : ''}
+        </div>
+      `).join('');
+
+      const actualLateMonthSessionsList = (data.lateness.actual_late_month_sessions && data.lateness.actual_late_month_sessions.length > 0)
+        ? data.lateness.actual_late_month_sessions.map(s => `<span style="display:inline-block; background:#FAF3E3; border:1px solid #EADBBA; border-radius:3px; padding:2px 7px; margin:2px; font-family:var(--font-mono); font-size:0.75rem; color:#8C6214;">${s.date} (${s.session})</span>`).join('')
+        : '<span style="color:var(--ink-soft); font-size:0.78rem;">None recorded this month</span>';
+
+      const actualLateAllSessionsList = (data.lateness.actual_late_all_time_sessions && data.lateness.actual_late_all_time_sessions.length > 0)
+        ? data.lateness.actual_late_all_time_sessions.map(s => `<span style="display:inline-block; background:#FAF8F3; border:1px solid var(--rule); border-radius:3px; padding:2px 7px; margin:2px; font-family:var(--font-mono); font-size:0.75rem; color:var(--ink);">${s.date} (${s.session})</span>`).join('')
+        : '<span style="color:var(--ink-soft); font-size:0.78rem;">None recorded all time</span>';
+
+      drawerBody.innerHTML = `
+        <!-- Course Standing and Overall Standing -->
+        <div style="background: #FFF; border: 1px solid var(--rule); border-radius: 6px; padding: 16px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+            <span style="font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: var(--navy); text-transform: uppercase;">Standing · ${data.course.code}</span>
+            <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-soft);">Overall: <strong>${data.attendance.overall_percent}</strong> across courses</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin: 6px 0;">
+            <span style="font-size: 2.2rem; font-family: var(--font-display); font-weight: 700; color: var(--navy);">${data.attendance.percent}</span>
+            <span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-soft);">${data.attendance.attended} / ${data.attendance.held} sessions</span>
+          </div>
+          <div style="display: flex; gap: 8px; font-size: 0.82rem; margin-top: 6px;">
+            <span class="stamp stamp-present" style="font-size: 0.72rem;">${data.attendance.present} Present</span>
+            <span class="stamp stamp-late" style="font-size: 0.72rem;">${data.attendance.late} Late</span>
+            <span class="stamp stamp-absent" style="font-size: 0.72rem;">${data.attendance.absent} Absent</span>
+          </div>
+          <p style="margin: 10px 0 0 0; font-size: 0.78rem; color: var(--ink-soft); line-height: 1.4;">
+            ${data.attendance.explanation}
+          </p>
+        </div>
+
+        <!-- Recorded Lateness Analysis -->
+        <div style="background: #FFF; border: 1px solid var(--rule); border-radius: 6px; padding: 16px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h4 style="margin: 0; font-size: 0.92rem; font-weight: 700; color: var(--navy);">Recorded Lateness Analysis</h4>
+            <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--gold); font-weight: 600;">${data.current_month}</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div style="background: #FAF8F3; border: 1px solid var(--rule); border-radius: 4px; padding: 10px 12px;">
+              <span style="font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; color: var(--ink-soft); display: block;">Lates This Month</span>
+              <div style="font-size: 1.35rem; font-weight: 700; color: var(--late); margin: 2px 0;">${data.lateness.actual_late_month_count}</div>
+              <span style="font-size: 0.72rem; color: var(--ink-soft);">Recorded in ${data.current_month}</span>
+            </div>
+            <div style="background: #FAF8F3; border: 1px solid var(--rule); border-radius: 4px; padding: 10px 12px;">
+              <span style="font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; color: var(--ink-soft); display: block;">Lates All-Time</span>
+              <div style="font-size: 1.35rem; font-weight: 700; color: var(--navy); margin: 2px 0;">${data.lateness.actual_late_all_time_count}</div>
+              <span style="font-size: 0.72rem; color: var(--ink-soft);">Across all sessions</span>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 10px;">
+            <span style="font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; color: var(--navy); text-transform: uppercase; display: block; margin-bottom: 4px;">
+              Late Sessions in ${data.current_month}:
+            </span>
+            <div>${actualLateMonthSessionsList}</div>
+          </div>
+
+          <div style="padding-top: 10px; border-top: 1px solid var(--rule); font-size: 0.76rem; color: var(--ink-soft); font-family: var(--font-mono); display: flex; flex-direction: column; gap: 3px;">
+            <div>Requests specifically asking for "Late" (${data.current_month}): <strong>${data.lateness.late_requested_this_month}</strong></div>
+            <div>Requests specifically asking for "Late" (All-Time): <strong>${data.lateness.late_requested_all_time}</strong></div>
+          </div>
+        </div>
+
+        <!-- Correction Requests Summary -->
+        <div style="background: #FFF; border: 1px solid var(--rule); border-radius: 6px; padding: 16px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px;">
+            <h4 style="margin: 0; font-size: 0.92rem; font-weight: 700; color: var(--navy);">Correction Requests History</h4>
+            <span style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--ink-soft);">
+              Total: <strong>${data.requests.total_all_time}</strong> (${data.requests.total_this_month} in ${data.current_month})
+            </span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; margin-bottom: 12px;">
+            <div style="background: #EDF7EE; border: 1px solid #C2D5C8; border-radius: 4px; padding: 6px 2px;">
+              <div style="font-size: 1.1rem; font-weight: 700; color: var(--present);">${data.requests.approved}</div>
+              <span style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--present); text-transform: uppercase;">Approved</span>
+            </div>
+            <div style="background: #FDE8E8; border: 1px solid #F8B4B4; border-radius: 4px; padding: 6px 2px;">
+              <div style="font-size: 1.1rem; font-weight: 700; color: var(--absent);">${data.requests.rejected}</div>
+              <span style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--absent); text-transform: uppercase;">Rejected</span>
+            </div>
+            <div style="background: #FAF3E3; border: 1px solid #EADBBA; border-radius: 4px; padding: 6px 2px;">
+              <div style="font-size: 1.1rem; font-weight: 700; color: var(--gold);">${data.requests.pending}</div>
+              <span style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--gold); text-transform: uppercase;">Pending</span>
+            </div>
+            <div style="background: #FAF8F3; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 2px;">
+              <div style="font-size: 1.1rem; font-weight: 700; color: var(--ink-soft);">${data.requests.cancelled}</div>
+              <span style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--ink-soft); text-transform: uppercase;">Cancelled</span>
+            </div>
+          </div>
+          ${reqRows || '<div style="background:#FAF8F3; padding:12px; border:1px solid var(--rule); border-radius:4px; text-align:center; font-size:0.8rem; color:var(--ink-soft);">No prior correction requests in this course.</div>'}
+        </div>
+
+        <!-- Recent Class Attendance -->
+        <div style="margin-bottom: 10px;">
+          <h4 style="margin: 0 0 8px 0; font-size: 0.92rem; font-weight: 700; color: var(--navy);">Recent Class Attendance</h4>
+          <div style="background: #FFF; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse;">
+              ${historyRows || '<tr><td style="padding:14px; text-align:center; color:var(--ink-soft);">No attendance history</td></tr>'}
+            </table>
+          </div>
+        </div>
+      `;
+    })
+    .catch(err => {
+      drawerBody.innerHTML = `<div style="padding: 24px; color: #9B1C1C; text-align: center;">Error loading student report: ${err.message}</div>`;
+    });
+}
+
+function closeReportDrawer() {
+  const drawer = document.getElementById('report-drawer');
+  const backdrop = document.getElementById('report-drawer-backdrop');
+  drawer.style.right = '-480px';
+  setTimeout(() => backdrop.style.display = 'none', 300);
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    closeRejectModal();
+    closeReportDrawer();
+  }
+});
+</script>
+{% endblock %}
+

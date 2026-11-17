@@ -1,0 +1,26 @@
+Cobra Coaching — Attendance Correction Notification
+==================================================
+
+Hello Prof. {{ teacher.get_full_name|default:teacher.username }},
+
+{{ count }} student{{ count|pluralize }} requested attendance corrections for your courses:
+
+{% for req in requests %}
+- {{ req.student.get_full_name|default:req.student.username }} (Roll: {{ req.student.roll_number|default:req.student.username }})
+  Course: {{ req.course.code }} - {{ req.course.name }}
+  Session: {{ req.session.date|date:"d M Y" }} ({{ req.session.session_identifier }})
+  Current Status: {{ req.get_original_status_display|default:"Entry missing" }}
+  Requested Status: {{ req.get_requested_status_display }}
+  Reason: {{ req.reason }}
+{% endfor %}
+
+Review and take action on these requests here:
+{{ review_url }}
+
+Note: This link will expire on {{ expires_at|date:"d M Y, h:i A" }}.
+Opening this link will not modify any attendance until you explicitly confirm.
+
+-- 
+Cobra Coaching Platform
+Department of Computer Science
+

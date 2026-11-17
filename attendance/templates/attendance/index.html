@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Register — College Attendance System</title>
+<title>Sign In — Cobra Coaching</title>
 <link rel="stylesheet" href="{% static 'style.css' %}">
 <style>
   .login-side-content {
@@ -70,14 +70,14 @@
       </div>
     </div>
 
-    <p style="position:relative; z-index:1; color:#8590AC; font-size:0.78rem; margin:0;">Department of Computer Science · Fall Semester 2026</p>
+    <p style="position:relative; z-index:1; color:#8590AC; font-size:0.78rem; margin:0;">Department of Computer Science · Cobra Coaching Platform</p>
   </section>
 
   <section class="login-form-wrap">
     <div class="login-card">
       <span class="eyebrow">Sign in</span>
       <h2>Welcome back</h2>
-      <p class="login-sub">Sign in to access Attendance and Grade records</p>
+      <p class="login-sub">Sign in to access Attendance, Grades, and Learning records</p>
 
       {% for message in messages %}
         <p class="form-note">{{ message }}</p>
@@ -88,31 +88,20 @@
         </p>
       {% endif %}
 
-      <div class="role-switch" style="margin-bottom: 14px;">
-        <input type="radio" name="role" id="role-student" checked onclick="setCredentials('STU001')">
-        <label for="role-student">Student</label>
-        <input type="radio" name="role" id="role-faculty" onclick="setCredentials('EMP2001')">
-        <label for="role-faculty">Faculty</label>
-        <input type="radio" name="role" id="role-admin" onclick="setCredentials('admin')">
-        <label for="role-admin">Admin</label>
-      </div>
-
-
-
       <form method="post" action="{% url 'login' %}">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ next }}">
         <div class="field">
           <label for="id">College ID / Username</label>
-          <input type="text" name="username" id="id" value="{{ form.username.value|default:'STU001' }}"
-                 placeholder="e.g. STU001 or EMP2001" required autofocus>
+          <input type="text" name="username" id="id" value="{{ form.username.value|default:'' }}"
+                 placeholder="e.g. STU001 or EMP2001" required autofocus autocomplete="username">
         </div>
         <div class="field">
           <label for="pw">Password</label>
-          <input type="password" name="password" id="pw" value="pass1234" placeholder="••••••••••" required>
+          <input type="password" name="password" id="pw" value="" placeholder="••••••••••" required autocomplete="current-password">
         </div>
         <div class="field-row">
-          <label class="check"><input type="checkbox" checked> Remember me</label>
+          <label class="check"><input type="checkbox" name="remember_me"> Remember me</label>
           <a href="#">Need help?</a>
         </div>
         <button type="submit" class="btn btn-primary btn-block">Sign in to Cobra Coaching</button>
@@ -123,15 +112,6 @@
   </section>
 
 </main>
-
-<script>
-  function setCredentials(username) {
-    const userInput = document.getElementById('id');
-    const pwInput = document.getElementById('pw');
-    if (userInput) userInput.value = username;
-    if (pwInput) pwInput.value = 'pass1234';
-  }
-</script>
 
 </body>
 </html>

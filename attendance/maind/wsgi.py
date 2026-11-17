@@ -1,13 +1,15 @@
 """
-WSGI config for freelan project.
-
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/6.0/howto/deployment/wsgi/
+WSGI config for Cobra Coaching project.
 """
 
 import os
+import sys
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+for p in (str(BASE_DIR.parent), str(BASE_DIR)):
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 from django.core.wsgi import get_wsgi_application
 

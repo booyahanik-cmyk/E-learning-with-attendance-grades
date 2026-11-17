@@ -17,7 +17,7 @@
           Your grades
         </h1>
         <p class="main-subtitle" id="page-subtitle" style="margin: 0; color: var(--ink-soft); font-size: 0.95rem;">
-          View your subject-wise marks, grades and semester summary for {{ student.get_full_name|default:student.username }} (Roll: {{ student.roll_number|default:student.username }}).
+          View subject-wise marks, grades and semester summary for {{ student.get_full_name|default:student.username }} (Roll: {{ student.roll_number|default:student.username }}).
         </p>
       </div>
 
@@ -55,10 +55,10 @@
       <!-- Card 4: Result Status -->
       <div class="stat-card" id="card-status">
         <span class="stat-label">RESULT STATUS</span>
-        <div class="stat-value {% if sem_data.status == 'PASS' %}status-pass{% else %}status-fail{% endif %}" id="val-status">
+        <div class="stat-value {% if sem_data.status == 'PASS' %}status-pass{% elif sem_data.status == 'FAIL' %}status-fail{% else %}status-none{% endif %}" id="val-status">
           {{ sem_data.status }}
         </div>
-        <span class="stat-caption">All credits completed</span>
+        <span class="stat-caption">Institutional evaluation</span>
       </div>
     </section>
 
@@ -73,10 +73,13 @@
           <!-- Semester Selector -->
           <div class="select-wrapper">
             <select class="custom-select" id="semester-select" aria-label="Select Semester">
-              <option value="1" {% if sem_data.semester == 1 %}selected{% endif %}>Semester 1 (Curriculum)</option>
-              <option value="2" {% if sem_data.semester == 2 %}selected{% endif %}>Semester 2</option>
-              <option value="3" {% if sem_data.semester == 3 %}selected{% endif %}>Semester 3</option>
-              <option value="4" {% if sem_data.semester == 4 %}selected{% endif %}>Semester 4</option>
+              {% for sem in available_semesters %}
+                <option value="{{ sem.number }}" {% if sem_data.semester == sem.number %}selected{% endif %}>
+                  {{ sem.name|default:sem.stamp_text }}
+                </option>
+              {% empty %}
+                <option value="1" selected>Semester 1</option>
+              {% endfor %}
             </select>
             <div class="select-chevron">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -110,7 +113,7 @@
                   <td class="col-external">{{ sub.external }}</td>
                   <td class="col-total">{{ sub.total }}</td>
                   <td class="col-grade">
-                    <span class="grade-pill {% if sub.grade == 'A+' %}grade-pill-aplus{% elif sub.grade == 'A' %}grade-pill-a{% elif sub.grade == 'B+' %}grade-pill-bplus{% elif sub.grade == 'F' %}grade-pill-fail{% endif %}">
+                    <span class="grade-pill {% if sub.grade == 'A+' %}grade-pill-aplus{% elif sub.grade == 'A' %}grade-pill-a{% elif sub.grade == 'B+' or sub.grade == 'B' %}grade-pill-bplus{% elif sub.grade == 'F' %}grade-pill-fail{% endif %}">
                       {{ sub.grade }}
                     </span>
                   </td>
@@ -118,8 +121,8 @@
                 </tr>
               {% empty %}
                 <tr>
-                  <td colspan="8" style="text-align:center; padding: 28px; color: var(--ink-soft);">
-                    No subject records recorded for this semester yet.
+                  <td colspan="8" style="text-align:center; padding: 28px; color: var(--ink-soft); font-weight: 500;">
+                    No grades available for this semester.
                   </td>
                 </tr>
               {% endfor %}
@@ -182,7 +185,7 @@
                     <line x1="12" y1="15" x2="12" y2="3"></line>
                   </svg>
                 </span>
-                <span class="action-text">Download Marksheet (PDF)</span>
+                <span class="action-text">Download Marksheet (Print)</span>
               </div>
               <span class="action-chevron">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -219,36 +222,54 @@
   </div>
 </main>
 
-<!-- Interactive Modal Container -->
-<div class="modal-backdrop" id="modal-backdrop" aria-hidden="true" role="dialog">
-  <div class="modal-dialog">
+<!-- Modal Template for Report Card & Analysis -->
+<div class="modal-backdrop" id="modal-backdrop" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-header">
-      <h3 class="modal-title" id="modal-title">Official Registry Record</h3>
+      <h3 class="modal-title" id="modal-title">Report Card</h3>
       <button type="button" class="modal-close" id="modal-close-btn" aria-label="Close dialog">&times;</button>
     </div>
-    <div class="modal-content" id="modal-content-area">
-      <!-- Dynamic modal content injected via JS -->
+    <div class="modal-body" id="modal-content-area">
+      <!-- Dynamic modal content injected safely via JavaScript -->
     </div>
     <div class="modal-footer">
-      <button type="button" class="modal-btn modal-btn-secondary" id="modal-cancel-btn">Close</button>
-      <button type="button" class="modal-btn modal-btn-primary" id="modal-print-btn">Print Record</button>
+      <button type="button" class="btn btn-ghost" id="modal-cancel-btn">Close</button>
+      <button type="button" class="btn btn-primary" id="modal-print-btn">Print Marksheet</button>
     </div>
   </div>
 </div>
+
+<style>
+  .status-none {
+    color: var(--ink-soft, #7A7265) !important;
+  }
+</style>
+
+{{ all_sem_data|json_script:"academic-data" }}
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-  // Initial Academic Data JSON from Django Backend
-  const ACADEMIC_DATA = {{ all_sem_data_json|safe }};
+  // Safe JSON extraction from json_script (prevents script injection & XSS)
+  const ACADEMIC_DATA = JSON.parse(document.getElementById('academic-data').textContent || '{}');
   const CURRENT_STUDENT = {
-    username: "{{ student.username }}",
-    rollNumber: "{{ student.roll_number|default:student.username }}",
-    fullName: "{{ student.get_full_name|default:student.username }}"
+    username: "{{ student.username|escapejs }}",
+    rollNumber: "{{ student.roll_number|default:student.username|escapejs }}",
+    fullName: "{{ student.get_full_name|default:student.username|escapejs }}"
   };
 
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
-    // DOM references
     const semesterSelect = document.getElementById("semester-select");
     const valSemester = document.getElementById("val-semester");
     const valSgpa = document.getElementById("val-sgpa");
@@ -282,7 +303,7 @@
           <line x1="12" y1="8" x2="12" y2="12"></line>
           <line x1="12" y1="16" x2="12.01" y2="16"></line>
         </svg>
-        <span>${message}</span>
+        <span>${escapeHtml(message)}</span>
       `;
       container.appendChild(toast);
       setTimeout(() => {
@@ -309,21 +330,28 @@
       const data = ACADEMIC_DATA[semNumber];
       if (!data) return;
 
-      pageEyebrow.innerHTML = `<span class="eyebrow-dash" style="color:var(--gold); font-weight:700;">—</span> SEMESTER ${data.semester} · GRADE MANAGEMENT`;
-      semStamp.innerHTML = `<span class="stamp-inner-text">${data.stampText}</span>`;
+      pageEyebrow.innerHTML = `<span class="eyebrow-dash" style="color:var(--gold); font-weight:700;">—</span> SEMESTER ${escapeHtml(data.semester)} · GRADE MANAGEMENT`;
+      semStamp.innerHTML = `<span class="stamp-inner-text">${escapeHtml(data.stampText || ('SEM ' + data.semester))}</span>`;
 
       valSemester.textContent = data.semester;
       valSgpa.textContent = data.sgpa;
       valSubjects.textContent = data.totalSubjects;
       valStatus.textContent = data.status;
-      valStatus.className = `stat-value ${data.status === 'PASS' ? 'status-pass' : 'status-fail'}`;
+
+      if (data.status === 'PASS') {
+        valStatus.className = 'stat-value status-pass';
+      } else if (data.status === 'FAIL') {
+        valStatus.className = 'stat-value status-fail';
+      } else {
+        valStatus.className = 'stat-value status-none';
+      }
 
       summarySgpa.textContent = data.sgpa;
       summaryCredits.textContent = data.totalCredits;
 
       gradesTbody.innerHTML = "";
-      if (!data.subjects || data.subjects.length === 0) {
-        gradesTbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 24px; color: var(--ink-soft);">No records found for Semester ${semNumber}</td></tr>`;
+      if (!data.has_records || !data.subjects || data.subjects.length === 0) {
+        gradesTbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 28px; color: var(--ink-soft); font-weight: 500;">No grades available for this semester.</td></tr>`;
         return;
       }
 
@@ -335,14 +363,14 @@
         if (sub.grade === "F") pillClass = "grade-pill-fail";
 
         tr.innerHTML = `
-          <td class="col-code">${sub.code}</td>
-          <td class="col-subject">${sub.name}</td>
-          <td class="col-credits">${sub.credits}</td>
-          <td class="col-internal">${sub.internal}</td>
-          <td class="col-external">${sub.external}</td>
-          <td class="col-total">${sub.total}</td>
-          <td class="col-grade"><span class="grade-pill ${pillClass}">${sub.grade}</span></td>
-          <td class="col-gradepoint">${sub.gradePoint}</td>
+          <td class="col-code">${escapeHtml(sub.code)}</td>
+          <td class="col-subject">${escapeHtml(sub.name)}</td>
+          <td class="col-credits">${escapeHtml(sub.credits)}</td>
+          <td class="col-internal">${escapeHtml(sub.internal)}</td>
+          <td class="col-external">${escapeHtml(sub.external)}</td>
+          <td class="col-total">${escapeHtml(sub.total)}</td>
+          <td class="col-grade"><span class="grade-pill ${pillClass}">${escapeHtml(sub.grade)}</span></td>
+          <td class="col-gradepoint">${escapeHtml(sub.gradePoint)}</td>
         `;
         gradesTbody.appendChild(tr);
       });
@@ -351,49 +379,54 @@
     semesterSelect.addEventListener("change", (e) => {
       const sem = parseInt(e.target.value, 10);
       renderSemester(sem);
-      showToast(`Loaded grades for Semester ${sem}`);
+      showToast(`Loaded semester ${sem} view`);
     });
 
     actionReportCard.addEventListener("click", () => {
       const currentSem = semesterSelect.value;
       const data = ACADEMIC_DATA[currentSem];
-      if (!data) return;
+      if (!data || !data.has_records || !data.subjects || data.subjects.length === 0) {
+        showToast("No official grade records available for this semester.");
+        return;
+      }
+
+      const rowsHtml = data.subjects.map(s => `
+        <tr style="border-bottom:1px solid #EAE5D6;">
+          <td style="padding:8px 10px; font-family:var(--font-mono);">${escapeHtml(s.code)}</td>
+          <td style="padding:8px 10px;">${escapeHtml(s.name)}</td>
+          <td style="padding:8px 10px; text-align:center; font-family:var(--font-mono);">${escapeHtml(s.total)}/100</td>
+          <td style="padding:8px 10px; text-align:center; font-weight:600; color:#235C43;">${escapeHtml(s.grade)}</td>
+        </tr>
+      `).join('');
 
       const modalHtml = `
         <div style="font-family: var(--font-body); color: var(--ink);">
           <div style="display:flex; justify-content:space-between; border-bottom:1px solid #D9D2BD; padding-bottom:12px; margin-bottom:16px;">
             <div>
               <h4 style="font-family:var(--font-display); font-size:1.2rem; margin:0; color:var(--ink);">Cobra Coaching Academic Registry</h4>
-              <div style="font-size:12.5px; color:var(--ink-soft); margin-top:3px;">Student: ${CURRENT_STUDENT.fullName} · Roll: ${CURRENT_STUDENT.rollNumber}</div>
+              <div style="font-size:12.5px; color:var(--ink-soft); margin-top:3px;">Student: ${escapeHtml(CURRENT_STUDENT.fullName)} · Roll: ${escapeHtml(CURRENT_STUDENT.rollNumber)}</div>
             </div>
             <div style="text-align:right;">
-              <span style="font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--gold); border:1.5px solid var(--gold); padding:3px 9px; border-radius:4px;">SEM ${currentSem}</span>
+              <span style="font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--gold); border:1.5px solid var(--gold); padding:3px 9px; border-radius:4px;">SEM ${escapeHtml(currentSem)}</span>
             </div>
           </div>
           <table style="width:100%; font-size:13px; border-collapse:collapse; margin-bottom:16px;">
             <thead>
               <tr style="background:#26365C; color:#FFF; font-family:var(--font-mono); font-size:11px;">
-                <th style="padding:7px 10px; text-align:left;">CODE</th>
-                <th style="padding:7px 10px; text-align:left;">SUBJECT</th>
-                <th style="padding:7px 10px; text-align:center;">MARKS</th>
-                <th style="padding:7px 10px; text-align:center;">GRADE</th>
+                <th style="padding:8px 10px; text-align:left;">CODE</th>
+                <th style="padding:8px 10px; text-align:left;">SUBJECT</th>
+                <th style="padding:8px 10px; text-align:center;">MARKS</th>
+                <th style="padding:8px 10px; text-align:center;">GRADE</th>
               </tr>
             </thead>
             <tbody>
-              ${data.subjects.map(s => `
-                <tr style="border-bottom:1px solid #EAE5D6;">
-                  <td style="padding:8px 10px; font-family:var(--font-mono);">${s.code}</td>
-                  <td style="padding:8px 10px;">${s.name}</td>
-                  <td style="padding:8px 10px; text-align:center; font-family:var(--font-mono);">${s.total}/100</td>
-                  <td style="padding:8px 10px; text-align:center; font-weight:600; color:#235C43;">${s.grade}</td>
-                </tr>
-              `).join('')}
+              ${rowsHtml}
             </tbody>
           </table>
           <div style="display:flex; justify-content:space-between; background:#EAE5D6; padding:10px 14px; border-radius:4px; font-size:13px;">
-            <span><strong>SGPA:</strong> ${data.sgpa} / 10.0</span>
-            <span><strong>Total Credits:</strong> ${data.totalCredits}</span>
-            <span><strong>Status:</strong> <span style="color:var(--present); font-weight:700;">${data.status}</span></span>
+            <span><strong>SGPA:</strong> ${escapeHtml(data.sgpa)} / 10.0</span>
+            <span><strong>Total Credits:</strong> ${escapeHtml(data.totalCredits)}</span>
+            <span><strong>Status:</strong> <span style="color:var(--present); font-weight:700;">${escapeHtml(data.status)}</span></span>
           </div>
         </div>
       `;
@@ -408,7 +441,10 @@
     actionGradeAnalysis.addEventListener("click", () => {
       const currentSem = semesterSelect.value;
       const data = ACADEMIC_DATA[currentSem];
-      if (!data) return;
+      if (!data || !data.has_records) {
+        showToast("No performance diagnostics available for this semester.");
+        return;
+      }
 
       const modalHtml = `
         <div style="font-family: var(--font-body); color: var(--ink);">
@@ -418,17 +454,17 @@
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
             <div style="background:#FAF8F3; border:1px solid var(--rule); padding:12px; border-radius:4px;">
               <span style="font-family:var(--font-mono); font-size:10.5px; color:var(--ink-soft);">AVERAGE RAW SCORE</span>
-              <div style="font-family:var(--font-display); font-size:24px; font-weight:700; margin-top:4px; color:var(--ink);">${data.avgScore}%</div>
+              <div style="font-family:var(--font-display); font-size:24px; font-weight:700; margin-top:4px; color:var(--ink);">${escapeHtml(data.avgScore)}%</div>
             </div>
             <div style="background:#FAF8F3; border:1px solid var(--rule); padding:12px; border-radius:4px;">
-              <span style="font-family:var(--font-mono); font-size:10.5px; color:var(--ink-soft);">PERCENTILE ESTIMATE</span>
-              <div style="font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--present); margin-top:4px;">Top 5%</div>
+              <span style="font-family:var(--font-mono); font-size:10.5px; color:var(--ink-soft);">ACADEMIC SGPA</span>
+              <div style="font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--present); margin-top:4px;">${escapeHtml(data.sgpa)}</div>
             </div>
           </div>
           <div style="font-size:13px; color:var(--ink-soft); line-height:1.7;">
-            • Highest subject score: <strong>${data.highestSubject || 'N/A'}</strong><br>
-            • Continuous assessment standing: <strong>Exemplary (90%+)</strong><br>
-            • Academic status: <strong>Dean's Honor Roll Eligible</strong>
+            • Highest subject score: <strong>${escapeHtml(data.highestSubject || 'N/A')}</strong><br>
+            • Continuous assessment standing: <strong>${escapeHtml(data.status)}</strong><br>
+            • Evaluation scale: <strong>10.0 institutional scale</strong>
           </div>
         </div>
       `;

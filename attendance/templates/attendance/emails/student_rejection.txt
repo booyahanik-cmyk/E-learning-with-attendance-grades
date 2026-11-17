@@ -1,0 +1,26 @@
+Cobra Coaching — Attendance Correction Rejected
+=================================================
+
+Dear {{ student.get_full_name|default:student.username }},
+
+Your attendance correction request for {{ course.code }} — {{ course.name }} has been reviewed and REJECTED by your course instructor.
+
+Request Details:
+----------------
+Student Name:        {{ student.get_full_name|default:student.username }}
+Roll Number:         {{ student.roll_number|default:student.username }}
+Subject:             {{ course.code }} — {{ course.name }}
+Class Date & Session: {{ session.date|date:"d M Y" }} ({{ session.session_identifier }})
+Recorded Status:     {{ previous_status }} (Unchanged)
+
+Instructor's Rejection Reason:
+------------------------------
+{{ rejection_reason }}
+
+You can review your request history and details here:
+{{ request_details_url }}
+
+-- 
+Cobra Coaching Platform
+Department of Computer Science
+
